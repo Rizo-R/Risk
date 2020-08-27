@@ -1,6 +1,8 @@
-from continent import *
 import random
 import time
+
+from continent import *
+from roll import blitz
 
 order = [Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW]
 
@@ -14,6 +16,27 @@ def territories(player, continents):
     return res
 
 
+def blitz_attack(from_node, to_node):
+    '''Conducts blitz attack between the two nodes and changes the results.
+    Preconditions: from_node.get_troops() > 1 and to_node.get_troops() > 0;
+    the nodes have two different owners.'''
+    blitz_res = blitz(from_node.get_troops(), to_node.get_troops())
+
+    if blitz_res[0] == 1:
+        print("Attack unsuccessful! You now have 1 troop in " + from_node.get_name() + ". The " + to_node.get_owner() +
+              " player has " + str(blitz_res[1]) + " troops in " + to_node.get_name())
+        from_node.set_troops(1)
+        to_node.set_troops(blitz_res[1])
+    elif blitz_res[1] == 0:
+        print("Attack successful! You now have 1 troop in " + from_node.get_name() + " and " + str(blitz_res[0]-1) +
+              " troops in " + to_node.get_name())
+        from_node.set_troops(1)
+        to_node.set_owner(curr_player)
+        to_node.set_troops(blitz_res[0]-1)
+    else:
+        raise ValueError("Wrong results for blitz: (%i, %i)" % blitz_res)
+
+
 def turn(curr_player):
     print("Current player: " + curr_player.name)
     print("Your currently owned territories: ")
@@ -23,6 +46,9 @@ def turn(curr_player):
     from_node = find_node(from_id, territories(curr_player, [Europe]))
     if from_node == None:
         print("You don't own a territory with such id! Please enter id of a territory you own!")
+        turn(curr_player)
+    elif from_node.get_troops() < 2:
+        print("You need to have at least 2 troops in a territory to be able to attack!")
         turn(curr_player)
     else:
         done = False
@@ -35,16 +61,7 @@ def turn(curr_player):
             elif to_node.get_owner() == curr_player:
                 print("Territory already owned by you! Pick another territory.")
             else:
-                attack = random.randint(1, 6)
-                defend = random.randint(1, 6)
-
-                if attack > defend:
-                    to_node.set_owner(curr_player)
-                    print("Attack successful!")
-                    print("\nYou now own " + to_node.get_name() + ".")
-                else:
-                    print("Attack unsuccessful! NYEURRRRR")
-
+                blitz_attack(from_node, to_node)
                 done = True
 
 
