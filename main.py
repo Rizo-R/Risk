@@ -48,6 +48,11 @@ def turn(curr_player):
                 done = True
 
 
+for node in Europe.nodes:
+    node.set_troops(random.randint(1, 5))
+
+print(Europe.nodes)
+
 for i in range(4):
     curr_player = order.pop(0)
     order.append(curr_player)

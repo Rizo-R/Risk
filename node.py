@@ -3,17 +3,19 @@ from color import Color
 
 class Node():
 
-    def __init__(self, id, name, owner=Color.NONE, neighbors=[]):
+    def __init__(self, id, name, owner=Color.NONE, neighbors=[], numtroops=-1):
         ''' Initiates a Node object with given [id] (int), [name] of the region
-        (string), [owner] (Color object), and [neighbors] (list of Node 
-        objects.)'''
+        (string), [owner] (Color object), [neighbors] (list of Node 
+        objects.), and [numtroops] (int).'''
         self.id = id
         self.name = name
         self.owner = owner
         self.neighbors = neighbors
+        self.numtroops = numtroops
 
     def __repr__(self):
-        return "Node" + str(self.id) + ": " + self.owner.name
+        return "Node" + str(self.id) + ": " + self.owner.name + " " + \
+            str(self.numtroops) + " troops"
 
     def __str__(self):
         return str(self.id) + ": " + self.name
@@ -34,8 +36,14 @@ class Node():
     def get_neighbors(self):
         return self.neighbors
 
+    def get_troops(self):
+        return self.numtroops
+
     def set_owner(self, owner):
         self.owner = owner
+
+    def set_troops(self, numtroops):
+        self.numtroops = numtroops
 
     def add_edge(self, node):
         self.neighbors = add_node(node, self.neighbors)
@@ -82,5 +90,4 @@ def add_node(node, node_lst):
         return node_lst[:i+1] + add_node(node, node_lst[i+1:])
     elif node_lst[i] > node:
         return add_node(node, node_lst[:i]) + node_lst[i:]
-    # If node is already in node_lst, return node_lst unchanged.
     return node_lst
