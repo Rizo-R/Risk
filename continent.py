@@ -36,7 +36,7 @@ E2 = Node(22, "Great Britain", Color.GREEN)
 E3 = Node(23, "Scandinavia", Color.YELLOW)
 E4 = Node(24, "Western Europe", Color.GREEN)
 E5 = Node(25, "Northern Europe", Color.YELLOW)
-E6 = Node(26, "Ukraine")
+E6 = Node(26, "Ukraine", Color.RED)
 E7 = Node(27, "Southern Europe", Color.BLUE)
 
 E1.add_edge(E2)
