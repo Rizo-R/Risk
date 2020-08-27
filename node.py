@@ -49,6 +49,14 @@ class Node():
         self.neighbors = add_node(node, self.neighbors)
         node.neighbors = add_node(self, node.neighbors)
 
+    def attack_options(self):
+        '''Returns a list of nodes that could be attacked from the given node.'''
+        res = []
+        for node in self.neighbors:
+            if node.owner != self.owner:
+                res.append(node)
+        return res
+
 
 def find_node(id, node_lst):
     '''
