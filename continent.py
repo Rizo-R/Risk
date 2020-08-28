@@ -1,7 +1,7 @@
 from enum import Enum
+import random
 
 from node import Node, find_node
-from color import Color
 
 
 class Continent():
@@ -65,13 +65,13 @@ North_America = Continent(
     "North America", [NA1, NA2, NA3, NA4, NA5, NA6, NA7, NA8, NA9], None)
 
 # Europe.
-E1 = Node(21, "Iceland", Color.RED)
-E2 = Node(22, "Great Britain", Color.GREEN)
-E3 = Node(23, "Scandinavia", Color.YELLOW)
-E4 = Node(24, "Western Europe", Color.GREEN)
-E5 = Node(25, "Northern Europe", Color.YELLOW)
-E6 = Node(26, "Ukraine", Color.RED)
-E7 = Node(27, "Southern Europe", Color.BLUE)
+E1 = Node(21, "Iceland")
+E2 = Node(22, "Great Britain")
+E3 = Node(23, "Scandinavia")
+E4 = Node(24, "Western Europe")
+E5 = Node(25, "Northern Europe")
+E6 = Node(26, "Ukraine")
+E7 = Node(27, "Southern Europe")
 
 E1.add_edge(E2)
 E1.add_edge(E3)
@@ -107,7 +107,7 @@ AF4.add_edge(AF5)
 AF4.add_edge(AF6)
 AF5.add_edge(AF6)
 
-Africa = Continent("Africa", [AF1, AF2, AF3, AF4, AF5], None)
+Africa = Continent("Africa", [AF1, AF2, AF3, AF4, AF5, AF6], None)
 
 # South America.
 
@@ -199,5 +199,11 @@ Asia = Continent(
     None)
 
 # Put all in a single list.
-Continents = [North_America, Europe, Africa, South_America, Australia,
+continents = [North_America, Europe, Africa, South_America, Australia,
               Asia]
+
+all_nodes = []
+for continent in continents:
+    for node in continent.get_nodes():
+        all_nodes.append(node)
+random.shuffle(all_nodes)

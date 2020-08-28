@@ -14,7 +14,7 @@ class Node():
         self.numtroops = numtroops
 
     def __repr__(self):
-        return "Node" + str(self.id) + ": " + self.owner.name + " " + \
+        return "Node" + str(self.id) + ": " + str(self.owner) + " " + \
             str(self.numtroops) + " troops"
 
     def __str__(self):
@@ -44,6 +44,12 @@ class Node():
 
     def set_troops(self, numtroops):
         self.numtroops = numtroops
+
+    def add_troops(self, numtroops):
+        self.numtroops += numtroops
+
+    def subtract_troops(self, numtroops):
+        self.numtroops -= numtroops
 
     def add_edge(self, node):
         self.neighbors = add_node(node, self.neighbors)
