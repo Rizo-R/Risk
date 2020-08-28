@@ -23,13 +23,14 @@ def blitz_attack(from_node, to_node):
     blitz_res = blitz(from_node.get_troops(), to_node.get_troops())
 
     if blitz_res[0] == 1:
-        print("Attack unsuccessful! You now have 1 troop in " + from_node.get_name() + ". The " + to_node.get_owner() +
+        print("Attack unsuccessful! You now have 1 troop in " + from_node.get_name() + ". The " + to_node.get_owner().name +
               " player has " + str(blitz_res[1]) + " troops in " + to_node.get_name())
         from_node.set_troops(1)
         to_node.set_troops(blitz_res[1])
     elif blitz_res[1] == 0:
         print("Attack successful! You now have 1 troop in " + from_node.get_name() + " and " + str(blitz_res[0]-1) +
               " troops in " + to_node.get_name())
+        print("You get a card!")
         from_node.set_troops(1)
         to_node.set_owner(curr_player)
         to_node.set_troops(blitz_res[0]-1)
@@ -51,22 +52,28 @@ def turn(curr_player):
         print("You need to have at least 2 troops in a territory to be able to attack!")
         turn(curr_player)
     else:
-        done = False
-        while not done:
-            to_id = int(input("Enter the id of a node which to attack: "))
-            # TODO: change to to_node.neighbors()
-            to_node = find_node(to_id, Europe.get_nodes())
-            if to_node == None:
-                print("Invalid node id! Node should be adjacent to the current node!")
-            elif to_node.get_owner() == curr_player:
-                print("Territory already owned by you! Pick another territory.")
-            else:
-                blitz_attack(from_node, to_node)
-                done = True
+        options = from_node.attack_options()
+        if len(options) == 0:
+            print("You can't attack any nodes from the given node!")
+            turn(curr_player)
+        else:
+            print("Possible nodes to attack: ", options)
+            done = False
+            while not done:
+                to_id = int(input("Enter the id of a node which to attack: "))
+                to_node = find_node(to_id, from_node.attack_options())
+                if to_node == None:
+                    print(
+                        "Invalid node id! Node should be adjacent to the current node!")
+                elif to_node.get_owner() == curr_player:
+                    print("Territory already owned by you! Pick another territory.")
+                else:
+                    blitz_attack(from_node, to_node)
+                    done = True
 
 
 for node in Europe.nodes:
-    node.set_troops(random.randint(1, 5))
+    node.set_troops(random.randint(1, 7))
 
 print(Europe.nodes)
 
