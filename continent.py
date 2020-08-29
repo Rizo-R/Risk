@@ -6,10 +6,11 @@ from node import Node, find_node
 
 class Continent():
 
-    def __init__(self, name, nodes=[], single_owner=None):
+    def __init__(self, name, nodes=[], bonus=None, owner=None):
         self.name = name
         self.nodes = nodes
-        self.single_owner = single_owner
+        self.bonus = bonus
+        self.owner = owner
 
     def get_name(self):
         return self.name
@@ -17,11 +18,17 @@ class Continent():
     def get_nodes(self):
         return self.nodes
 
+    def get_bonus(self):
+        return self.bonus
+
+    def get_owner(self):
+        return self.owner
+
     def monopolize(self, owner):
-        self.single_owner = owner
+        self.owner = owner
 
     def demonopolize(self):
-        self.single_owner = None
+        self.owner = None
 
     def find(self, nodeid):
         return find_node(nodeid, self.nodes)
@@ -62,7 +69,7 @@ NA7.add_edge(NA9)
 NA8.add_edge(NA9)
 
 North_America = Continent(
-    "North America", [NA1, NA2, NA3, NA4, NA5, NA6, NA7, NA8, NA9], None)
+    "North America", [NA1, NA2, NA3, NA4, NA5, NA6, NA7, NA8, NA9], 5, None)
 
 # Europe.
 E1 = Node(21, "Iceland")
@@ -86,7 +93,7 @@ E5.add_edge(E6)
 E5.add_edge(E7)
 E6.add_edge(E7)
 
-Europe = Continent("Europe", [E1, E2, E3, E4, E5, E6, E7], None)
+Europe = Continent("Europe", [E1, E2, E3, E4, E5, E6, E7], 5, None)
 
 # Africa.
 
@@ -107,7 +114,7 @@ AF4.add_edge(AF5)
 AF4.add_edge(AF6)
 AF5.add_edge(AF6)
 
-Africa = Continent("Africa", [AF1, AF2, AF3, AF4, AF5, AF6], None)
+Africa = Continent("Africa", [AF1, AF2, AF3, AF4, AF5, AF6], 3, None)
 
 # South America.
 
@@ -122,7 +129,7 @@ SA2.add_edge(SA3)
 SA2.add_edge(SA4)
 SA3.add_edge(SA4)
 
-South_America = Continent("South America", [SA1, SA2, SA3, SA4], None)
+South_America = Continent("South America", [SA1, SA2, SA3, SA4], 2, None)
 
 # Australia.
 
@@ -137,7 +144,7 @@ AU2.add_edge(AU3)
 AU2.add_edge(AU4)
 AU3.add_edge(AU4)
 
-Australia = Continent("Australia", [AU1, AU2, AU3, AU4], None)
+Australia = Continent("Australia", [AU1, AU2, AU3, AU4], 2, None)
 
 # Asia.
 
@@ -195,7 +202,7 @@ AU1.add_edge(AS12)
 
 
 Asia = Continent(
-    "Asia", [AS1, AS2, AS3, AS4, AS5, AS6, AS7, AS8, AS9, AS10, AS11, AS12],
+    "Asia", [AS1, AS2, AS3, AS4, AS5, AS6, AS7, AS8, AS9, AS10, AS11, AS12], 7,
     None)
 
 # Put all in a single list.
@@ -206,4 +213,5 @@ all_nodes = []
 for continent in continents:
     for node in continent.get_nodes():
         all_nodes.append(node)
+all_nodes_sorted = all_nodes.copy()
 random.shuffle(all_nodes)
