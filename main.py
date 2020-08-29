@@ -179,22 +179,20 @@ def print_continent_list(continent_lst):
 def request_input(input_type, msg):
     '''
     Helper function for deploy_phase(), attack_phase(), and fortify_phase().
-    Requests input of a given [input_type] (string that is either 'int',
-        'float', or 'str') with a given message (str) until user enters input
-        of a type needed.
+    Requests input of a given [input_type] (either 'int', 'float', or 'str')
+        with a given message (str) until user enters input of a type needed.
     Returns user's input.
     '''
-    known_types = {'int': int, 'float': float, 'str': str}
     while True:
         try:
-            res = known_types[input_type](input(msg))
+            res = input_type(input(msg))
             return res
         except ValueError:
             print("Invalid input!")
 
 
 def set_continent_owners(continents):
-    '''Checks if any of the continents is owned by a single color and 
+    '''Checks if any of the continents is owned by a single color and
     sets owners if there are ones.'''
     for continent in continents:
         single_owner = True
@@ -228,7 +226,7 @@ def deploy_phase(curr_player):
         print("\nYou have %i more troops to deploy." %
               curr_player.get_troops())
         # Ask for a node id.
-        nodeid = request_input('int', msg_1)
+        nodeid = request_input(int, msg_1)
         node = find_node(nodeid, all_nodes_sorted)
         # Node not found.
         if node == None:
@@ -239,7 +237,7 @@ def deploy_phase(curr_player):
             print("\nYou don't own this territory!")
             continue
         # Ask for a number of troops to add.
-        troops_added = request_input('int', msg_2)
+        troops_added = request_input(int, msg_2)
         if troops_added < 0:
             print("\nNumber of deployed troops can't be negative!")
         elif troops_added > curr_player.get_troops():
@@ -255,51 +253,69 @@ def deploy_phase(curr_player):
 
 def attack_phase(curr_color):
     print("\nATTACK.\n")
-    print("Your currently owned territories: ")
-    print(territories(curr_color, continents))
 
-    # Check if current player can attack.
-    if not check_attack(curr_color, continents):
-        print("Sorry, but you currently don't have any opportunities to attack!")
-        return
+    done_attacking = False
+    while not done_attacking:
+        # Check if current player can attack.
+        if not check_attack(curr_color, continents):
+            print("Sorry! You currently don't have any opportunities to attack!")
+            return
 
-    # try:
-    #     from_id = int(input("Enter the id of a node from which to attack: "))
-    # except ValueError:
-    #     print("Invalid input!")
-    #     turn(curr_color)
-    #     return
+        msg = "Your currently owned territories: \n" \
+            + str(territories(curr_color, continents)) \
+            + "\nEnter the id of a node from which to attack or -1 to finish ATTACK phase: "
+        from_id = request_input(int, msg)
 
-    msg = "Enter the id of a node from which to attack: "
-    from_id = request_input('int', msg)
-    from_node = find_node(from_id, territories(curr_color, continents))
-    if from_node == None:
-        print("You don't own a territory with such id! Please enter id of a territory you own!")
-        attack_phase(curr_color)
-    elif from_node.get_troops() < 2:
-        print("You need to have at least 2 troops in a territory to be able to attack!")
-        attack_phase(curr_color)
-    else:
-        options = from_node.attack_options()
-        if len(options) == 0:
-            print("You can't attack any nodes from the given node!")
-            attack_phase(curr_color)
+        # Check if done.
+        if from_id == -1:
+            done_attacking = True
+            break
+
+        from_node = find_node(from_id, territories(curr_color, continents))
+        if from_node == None:
+            print(
+                "You don't own a territory with such id! Please enter id of a territory you own!")
+            continue
+        elif from_node.get_troops() < 2:
+            print(
+                "You need to have at least 2 troops in a territory to be able to attack!")
+            continue
         else:
-            print("You have %i troops in %s." %
-                  (from_node.get_troops(), from_node.get_name()))
-            print("Possible nodes to attack: ", options)
-            done = False
-            while not done:
-                to_id = int(input("Enter the id of a node which to attack: "))
+            options = from_node.attack_options()
+            # Check if can attack from the node.
+            if len(options) == 0:
+                print("You can't attack any nodes from the given node!")
+                continue
+            else:
+                print("You have %i troops in %s." %
+                      (from_node.get_troops(), from_node.get_name()))
+                print("Possible nodes to attack: ", options)
+                to_id = request_input(
+                    int, "Enter the id of a node to attack: ")
                 to_node = find_node(to_id, from_node.get_neighbors())
                 if to_node == None:
                     print(
                         "Invalid node id! Node should be adjacent to the current node!")
                 elif to_node.get_owner() == curr_color:
-                    print("Territory already owned by you! Pick another territory.")
+                    print(
+                        "Territory already owned by you! Pick another territory.")
                 else:
                     blitz_attack(from_node, to_node)
-                    done = True
+
+                # done = False
+                # while not done:
+                #     to_id = int(
+                #         input("Enter the id of a node which to attack: "))
+                #     to_node = find_node(to_id, from_node.get_neighbors())
+                #     if to_node == None:
+                #         print(
+                #             "Invalid node id! Node should be adjacent to the current node!")
+                #     elif to_node.get_owner() == curr_color:
+                #         print(
+                #             "Territory already owned by you! Pick another territory.")
+                #     else:
+                #         blitz_attack(from_node, to_node)
+                #         done = True
 
 
 # Because of colored printing, printing nodes owned by Color.NONE will result
