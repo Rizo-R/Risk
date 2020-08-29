@@ -5,6 +5,7 @@ from color import Color
 from continent import *
 from roll import blitz
 from player import Player
+from path import path_exists
 
 
 # Initialize players.
@@ -327,8 +328,7 @@ def fortify_phase(curr_player):
         str(territories(curr_color, continents))
     msg_from = str_terr + \
         "\nEnter the id of a node from which to take troops or -1 to skip FORTIFY phase: "
-    msg_to = str_terr + \
-        "\nEnter the id of a node to transfer troops to or -1 to get back to pick a different node: "
+    msg_to = "\nEnter the id of a node to transfer troops to or -1 to get back to pick a different node: "
 
     while True:
         from_id = request_input(int, msg_from)
@@ -356,6 +356,10 @@ def fortify_phase(curr_player):
                 print(
                     "\nYou don't own a territory with such id! Please enter id of a territory you own!\n")
                 continue
+            # Check if the two territories are connected.
+            elif not path_exists(from_node, to_node):
+                print(
+                    "\nThe two territories aren't connected! You need to own all territories in a path between them to transfer troops!\n")
             else:
                 # Ask how many troops to get.
                 from_name = from_node.get_name()
