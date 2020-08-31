@@ -10,14 +10,14 @@ from roll import blitz
 
 
 # Initialize players.
-initial_troops = 7
-red = Player(Color.RED, 80, [])
+initial_troops = 30
+red = Player(Color.RED, initial_troops, [])
 blue = Player(Color.BLUE, initial_troops, [])
 green = Player(Color.GREEN, initial_troops, [])
 yellow = Player(Color.YELLOW, initial_troops, [])
 
 # Randomize order.
-order = [red, green]
+order = [red, blue, green, yellow]
 # random.shuffle(order)
 
 
@@ -289,8 +289,13 @@ def deploy_phase(curr_player):
 
     # Check if player has more than 4 cards.
     if len(curr_player.get_cards()) > 4:
-        print("You have too many cards! You have to use them to get bonus troops!")
-        bonus_troops += curr_player.use_cards(curr_player.decide())
+        print("\nYou have too many cards! You have to use them to get bonus troops!")
+        best_hand = curr_player.decide()
+        # Used cards are added to the deck in random locations.
+        for card in best_hand:
+            all_cards.insert(random.randint(0, len(all_cards)), card)
+        bonus_troops += curr_player.use_cards(best_hand)
+
     elif len(curr_player.possible_combos()) > 0:
         best_hand = curr_player.decide()
         _, possible_bonus = curr_player.count_bonus(best_hand, False)
@@ -298,11 +303,14 @@ def deploy_phase(curr_player):
             msg_card = "\nYou have an opportunity to use cards and to obtain %i bonus troops! Enter 1 to use it now or -1 to skip: " % possible_bonus
             card_use = request_input(int, msg_card)
             if card_use == 1:
-                print("You used your bonus cards.")
+                print("\nYou used your bonus cards.")
+                # Used cards are added to the deck in random locations.
+                for card in best_hand:
+                    all_cards.insert(random.randint(0, len(all_cards)), card)
                 bonus_troops += curr_player.use_cards(best_hand)
                 break
             elif card_use == -1:
-                print("You skipped.")
+                print("\nYou skipped.")
                 break
             else:
                 print("\nWrong input! Please enter either 1 or -1.")
@@ -510,8 +518,25 @@ for continent in continents:
         if node.get_owner() == Color.NONE:
             raise ValueError('Unowned node!' + str(node))
 
-for i in range(4):
-    green.give_card(all_cards.pop(0))
+# green.give_card(Card(Troop.WILDCARD, None))
+
+# for i in range((len(all_cards))):
+#     if all_cards[i].get_troop_type() == Troop.ARTILLERY:
+#         green.give_card(all_cards.pop(i))
+#         break
+
+# count = 0
+# for i in range((len(all_cards))):
+#     print(all_cards[i].get_troop_type())
+#     if all_cards[i].get_troop_type() == Troop.INFANTRY and all_cards[i].get_node().get_name() > green.cards[0].get_node().get_name():
+#         print("Given!")
+#         green.give_card(all_cards.pop(i))
+#         count += 1
+#         if count == 2:
+#             break
+
+# for i in range(4):
+#     green.give_card(all_cards.pop(0))
 
 # green.give_card(Card(Troop.ARTILLERY, NA1))
 # green.give_card(Card(Troop.ARTILLERY, NA2))

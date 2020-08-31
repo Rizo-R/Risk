@@ -185,18 +185,25 @@ class Player():
 
     def decide(self):
         '''Based on player's hand, picks the best possible hand.'''
-        max = 0
         best_hand = []
-        best_hand_wilcards = 0
+        best_hand_wildcards = 0
+        max_bonus = 0
 
         card_combos = self.possible_combos()
         for combo in card_combos:
+            # print("\nBest hand: %s." % str(best_hand))
+            # print("Best wildcards: %i. Best card bonus: %i. Best total bonus: %i." %
+            #       (best_hand_wildcards, self.count_bonus(combo, False)[0], self.count_bonus(combo, False)[1]))
+            # print("\nCurrent combo: %s." % str(combo))
             wildcards = Player.count_wildcards_list(combo)
-            _, total_bonus = self.count_bonus(combo, False)
+            card_bonus, total_bonus = self.count_bonus(combo, False)
+            # print("Wildcards: %i. Card bonus: %i. Total bonus: %i." %
+            #       (wildcards, card_bonus, total_bonus))
             # Pick the highest bonus with least wildcards used.
-            if total_bonus > max or (total_bonus == max and wildcards < best_hand_wilcards):
+            if total_bonus > max_bonus or (total_bonus == max_bonus and wildcards < best_hand_wildcards):
                 best_hand = combo
-                best_hand_wilcards = wildcards
+                best_hand_wildcards = wildcards
+                max_bonus = total_bonus
 
         return list(best_hand)
 

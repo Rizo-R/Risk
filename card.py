@@ -84,8 +84,15 @@ def remove_card(territory, card_lst):
         that are sorted by territory name in an increasing order with no
         duplicates. [card_lst] can be empty.
     '''
+
     if len(card_lst) == 0:
         raise ValueError("Card not found in the card list!")
+    # If looking for a wildcard, remove ONE wildcar from the end of [card_lst].
+    elif territory == None:
+        if card_lst[-1].get_troop_type() == Troop.WILDCARD:
+            return card_lst[:-1]
+        else:
+            raise ValueError("Card not found in the card list!")
 
     i = len(card_lst) // 2
     curr_terr = card_lst[i].get_node()
@@ -107,8 +114,15 @@ def find_card(territory, card_lst):
         that are sorted by territory name in an increasing order with no
         duplicates. [card_lst] can be empty.
     '''
+
     if len(card_lst) == 0:
         return None
+    # If looking for a wildcard, look at the very end of [card_lst].
+    elif territory == None:
+        if card_lst[-1].get_troop_type() == Troop.WILDCARD:
+            return card_lst[-1]
+        else:
+            return None
 
     i = len(card_lst) // 2
     curr_terr = card_lst[i].get_node()
