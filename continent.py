@@ -77,7 +77,7 @@ E2 = Node(22, "Great Britain")
 E3 = Node(23, "Scandinavia")
 E4 = Node(24, "Western Europe")
 E5 = Node(25, "Northern Europe")
-E6 = Node(26, "Ukraine")
+E6 = Node(26, "Russia")
 E7 = Node(27, "Southern Europe")
 
 E1.add_edge(E2)

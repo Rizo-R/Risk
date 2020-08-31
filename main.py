@@ -1,11 +1,12 @@
 import random
 import time
 
+from card import *
 from color import Color
 from continent import *
-from roll import blitz
-from player import Player
 from path import path_exists
+from player import Player
+from roll import blitz
 
 
 # Initialize players.
@@ -17,7 +18,7 @@ yellow = Player(Color.YELLOW, initial_troops, [])
 
 # Randomize order.
 order = [red, green]
-random.shuffle(order)
+# random.shuffle(order)
 
 
 def territories(color, continents):
@@ -84,6 +85,7 @@ def initialize_troops(order, nodes):
 def remove_defeated(player_lst):
     '''Removes players with no territories from the given player list.
     Returns a new player list without the defeated players.
+
     Preconditions: no duplicates in [player_lst].'''
     res = []
     for i in range(len(player_lst)):
@@ -91,7 +93,7 @@ def remove_defeated(player_lst):
         if len(territories(player.get_color(), continents)) > 0:
             res.append(player)
         else:
-            print("\nThe %s Player has been defeated!\n" %
+            print("\n%s Player has been defeated!\n" %
                   str(player.get_color()))
     return res
 
@@ -119,8 +121,11 @@ def check_attack_everyone(order, continents):
 
 def blitz_attack(from_node, to_node):
     '''Conducts blitz attack between the two nodes and changes the results.
+    Returns a boolean representing whether attack was successful or not.
+
     Preconditions: from_node.get_troops() > 1 and to_node.get_troops() > 0;
-    the nodes have two different owners.'''
+        the nodes have two different owners.'''
+
     blitz_res = blitz(from_node.get_troops(), to_node.get_troops())
 
     if blitz_res[0] == 1:
@@ -128,16 +133,83 @@ def blitz_attack(from_node, to_node):
               " player has " + str(blitz_res[1]) + " troops in " + to_node.get_name())
         from_node.set_troops(1)
         to_node.set_troops(blitz_res[1])
+        return False
     elif blitz_res[1] == 0:
-        print("Attack successful! You now have 1 troop in " + from_node.get_name() + " and " + str(blitz_res[0]-1) +
-              " troops in " + to_node.get_name())
-        print("You get a card!")
-        from_node.set_troops(1)
-        curr_color = from_node.get_owner()
-        to_node.set_owner(curr_color)
-        to_node.set_troops(blitz_res[0]-1)
+        print("\nAttack successful!")
+        while True:
+
+            # Only 2 troops survived. 1 automatically goes into a new territory.
+            if blitz_res[0] == 2:
+                to_node.set_owner(from_node.get_owner())
+                from_node.set_troops(1)
+                to_node.set_troops(1)
+                print("\nYou now have 1 troop in " + from_node.get_name() +
+                      " and " + "1 troop in " + to_node.get_name())
+                return True
+
+            # Only 3 troops survived. 2 automatically go into a new territory.
+            elif blitz_res[0] == 3:
+                to_node.set_owner(from_node.get_owner())
+                from_node.set_troops(1)
+                to_node.set_troops(2)
+                print("\nYou now have 1 troop in " + from_node.get_name() +
+                      " and " + "2 troops in " + to_node.get_name())
+                return True
+
+            # Only 4 troops survived. 3 automatically go into a new territory.
+            elif blitz_res[0] == 4:
+                to_node.set_owner(from_node.get_owner())
+                from_node.set_troops(1)
+                to_node.set_troops(3)
+                print("\nYou now have 1 troop in " + from_node.get_name() +
+                      " and " + "3 troops in " + to_node.get_name())
+                return True
+
+            # More than 3 troops survived. At least 3 go into a new territory.
+            elif blitz_res[0] > 3:
+                while True:
+                    print("\nYou have %i troops left in %s." %
+                          (blitz_res[0], from_node.get_name()))
+                    # Input the number of troops moved and check.
+                    moved_troops = request_input(
+                        int, "How many troops do you want to move into %s? " % to_node.get_name())
+                    if moved_troops < 3:
+                        print(
+                            "\nNeed to move at least 3 troops into a new territory!")
+                    elif moved_troops > blitz_res[0]-1:
+                        print(
+                            "\nNot enough troops! You have to leave at least 1 troop in %s!" % from_node.get_name())
+                    else:
+                        # Move troops.
+                        from_node.set_troops(blitz_res[0]-moved_troops)
+                        to_node.set_troops(moved_troops)
+                        to_node.set_owner(from_node.get_owner())
+
+                        from_troops = from_node.get_troops()
+                        to_troops = to_node.get_troops()
+                        from_name = from_node.get_name()
+                        to_name = to_node.get_name()
+                        print("You now have %i troops in %s, and %i troops in %s.\n" % (
+                            from_troops, from_name, to_troops, to_name))
+                        return True
+            else:
+                raise ValueError(
+                    "Wrong results for blitz: (%i, %i)" % blitz_res)
     else:
         raise ValueError("Wrong results for blitz: (%i, %i)" % blitz_res)
+
+    #             if moved_troops < 3:
+    #                 print("\nNeed to move at least 3 troops into a new territory!")
+    #             elif moved_troops > blitz_res[0]
+    #             You now have 1 troop in " + from_node.get_name() + " and " + str(blitz_res[0]-1) +
+    #                 " troops in " + to_node.get_name())
+    #             print("You get a card!")
+    #             from_node.set_troops(1)
+    #             curr_color=from_node.get_owner()
+    #             to_node.set_owner(curr_color)
+    #             to_node.set_troops(blitz_res[0]-1)
+    # else:
+    #     raise ValueError("Wrong results for blitz: (%i, %i)" % blitz_res)
 
 
 def calculate_troops_gained(curr_color, continents, print_details=False):
@@ -210,16 +282,43 @@ def set_continent_owners(continents):
 
 def deploy_phase(curr_player):
     print("\nDEPLOY.\n")
+
+    print("You have the following cards: %s.\n" % str(curr_player.get_cards()))
+
+    bonus_troops = 0
+
+    # Check if player has more than 4 cards.
+    if len(curr_player.get_cards()) > 4:
+        print("You have too many cards! You have to use them to get bonus troops!")
+        bonus_troops += curr_player.use_cards(curr_player.decide())
+    elif len(curr_player.possible_combos()) > 0:
+        best_hand = curr_player.decide()
+        _, possible_bonus = curr_player.count_bonus(best_hand, False)
+        while True:
+            msg_card = "\nYou have an opportunity to use cards and to obtain %i bonus troops! Enter 1 to use it now or -1 to skip: " % possible_bonus
+            card_use = request_input(int, msg_card)
+            if card_use == 1:
+                print("You used your bonus cards.")
+                bonus_troops += curr_player.use_cards(best_hand)
+                break
+            elif card_use == -1:
+                print("You skipped.")
+                break
+            else:
+                print("\nWrong input! Please enter either 1 or -1.")
+
     curr_color = curr_player.get_color()
     assert curr_player.get_troops() == 0, "Undeployed troops for %s Player!" % curr_color
+
     troops_gained, _, _ = calculate_troops_gained(curr_color, continents, True)
+    troops_gained += bonus_troops
     curr_player.set_troops(troops_gained)
     print("Total %i troops to deploy." % troops_gained)
     print("\nChoose where to put your troops.")
 
-    msg_1 = "Your currently owned territories: \n" \
-        + str(territories(curr_color, continents)) \
-        + "\nEnter the id of a node where to put troops: "
+    msg_1 = "Your currently owned territories: \n" + \
+        str(territories(curr_color, continents)) + \
+        "\nEnter the id of a node where to put troops: "
     msg_2 = "Enter the number of troops to add: "
 
     # Keep placing troops until player has no more undeployed troops.
@@ -256,15 +355,18 @@ def attack_phase(curr_player):
     print("\nATTACK.\n")
 
     curr_color = curr_player.get_color()
-    msg = "Your currently owned territories: \n" \
-        + str(territories(curr_color, continents)) \
-        + "\nEnter the id of a node from which to attack or -1 to finish ATTACK phase: "
 
+    get_card = False
     while True:
         # Check if current player can attack.
         if not check_attack(curr_color, continents):
             print("Sorry! You currently don't have any opportunities to attack!")
             return
+        # [msg] HAS to be defined here in order to keep updated with new territories
+        # in case of multiple attacks in one turn.
+        msg = "\nYour currently owned territories: \n" \
+            + str(territories(curr_color, continents)) \
+            + "\nEnter the id of a node from which to attack or -1 to finish ATTACK phase: "
         from_id = request_input(int, msg)
 
         # Check if done.
@@ -300,8 +402,15 @@ def attack_phase(curr_player):
                     print(
                         "Territory already owned by you! Pick another territory.")
                 else:
-                    blitz_attack(from_node, to_node)
+                    # Once set to True, [get_card] stays True.
+                    # However, blitz_attack() should be called in any case in order to make changes.
+                    get_card = blitz_attack(from_node, to_node) or get_card
 
+    if get_card:
+        card = all_cards.pop(0)
+        curr_player.give_card(card)
+        print("\nYou get a card!")
+        print("Your card: \033[44m%s\033[0m" % str(card))
     print("\nDone attacking.\n")
 
     # done = False
@@ -385,6 +494,8 @@ def fortify_phase(curr_player):
 
     print("\nDone fortifying.\n")
 
+    print("\nYour cards: %s.\n" % str(curr_player.get_cards()))
+
 
 # Because of colored printing, printing nodes owned by Color.NONE will result
 # in TypeError (since Color.None.Value is int).
@@ -399,6 +510,13 @@ for continent in continents:
         if node.get_owner() == Color.NONE:
             raise ValueError('Unowned node!' + str(node))
 
+for i in range(4):
+    green.give_card(all_cards.pop(0))
+
+# green.give_card(Card(Troop.ARTILLERY, NA1))
+# green.give_card(Card(Troop.ARTILLERY, NA2))
+# green.give_card(Card(Troop.CAVALRY, NA3))
+# green.give_card(Card(Troop.ARTILLERY, NA4))
 
 game_over = False
 while not game_over:
@@ -406,15 +524,15 @@ while not game_over:
     order = remove_defeated(order)
     # Check if there's a victor.
     if len(order) == 1:
-        print("\n\nThe %s Player won! Congratulations!\n\n" %
+        print("\n\n%s Player won! Congratulations!\n\n" %
               str(order[0].get_color()))
-        game_over = True
-    # Check if at least one player can attack.
-    elif not check_attack_everyone(order, continents):
-        print("\n\nNo one else can attack anymore! End of the game!\n\n")
         game_over = True
     # Make a turn.
     else:
+        # Check if at least one player can attack.
+        if not check_attack_everyone(order, continents):
+            print("\n\nNo one can attack on this turn!\n\n")
+            # game_over = True
         curr_player = order.pop(0)
         order.append(curr_player)
         print("\nCurrent player: %s.\n" % str(curr_player.get_color()))

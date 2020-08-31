@@ -2,7 +2,7 @@ from enum import Enum
 
 
 class Troop(Enum):
-    INFANTRY = 1
-    CAVALRY = 2
-    ARTILLERY = 3
-    WILDCARD = 4
+    INFANTRY = 4
+    CAVALRY = 6
+    ARTILLERY = 8
+    WILDCARD = 10

@@ -69,6 +69,7 @@ def find_node(id, node_lst):
     Uses binary search to look for a Node object with given [id] (int)
         in the [node_lst]
     Returns a Node object, or None if not found.
+
     Preconditions: [id] is a positive integer; [node_lst] is a list of Node 
     objects that are sorted by id in an increasing order. [node_lst] can be 
     empty.
@@ -92,6 +93,7 @@ def add_node(node, node_lst):
         objects.
     Returns a new list of Node objects. If [node_lst] already has the given 
     Node, returns [node_lst].
+
     Preconditions: [node] is a Node object; [node_lst] is a list of Node objects
         that are sorted by id in an increasing order. [node_lst] can be empty.
     '''
@@ -105,3 +107,22 @@ def add_node(node, node_lst):
     elif node_lst[i] > node:
         return add_node(node, node_lst[:i]) + node_lst[i:]
     return node_lst
+
+
+def find_territory(territory, node_lst):
+    '''
+    Like above, finds node with a give [territory] (str) in a given [node_lst].
+
+    Preconditions: 
+    [node_lst] sorted in alphabetical order by territory name. No duplicates.
+    '''
+    if len(node_lst) == 0:
+        return None
+
+    i = len(node_lst) // 2
+
+    if node_lst[i].get_name() < territory:
+        return find_territory(territory, node_lst[i+1:])
+    elif node_lst[i].get_name() > territory:
+        return find_territory(territory, node_lst[:i])
+    return node_lst[i]

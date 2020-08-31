@@ -8,6 +8,7 @@ def blitz(attack, defense):
     Returns a tuple representing the remaining troops for attacker and defender,
         respectively (if the second entry is 0, attack was successful; if
         the first entry is 1, attack was unsuccessful).
+
     Preconditions: [attack] and [defense] are both positive integers.
     [attack] is bigger than 1.
     '''
@@ -51,6 +52,7 @@ def roll(dice_attack, dice_defend):
         troop each; -1 if attacker loses one troop (only possible if defender
         rolls 1 die); -2 if attacker loses two troops (only possible if
         defender rolls at least 2 dice AND attacker rolls at least 2 dice).
+
     Preconditions: [dice_attack] and [dice_defend] are integers.
         1 <= [dice_attack] <= 3; 1 <= [dice_defend] <=2.
     '''
@@ -91,6 +93,7 @@ def write_res(attack, defense, roll_res):
     ''' Changes the numbers of [attack] and [defense] based on [roll_res]
             (obtained using roll()). For more details, see description of roll().
         Returns a new tuple for attacker and defender, respectively.
+
         Preconditions: [attack] and [defense] are positive integers that are big 
             enough to sustain losses described by [roll_res]. 
             -2 <= [roll_res] <= 2.'''
