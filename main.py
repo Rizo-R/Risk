@@ -18,7 +18,7 @@ yellow = Player(Color.YELLOW, initial_troops, [])
 
 # Randomize order.
 order = [red, blue, green, yellow]
-# random.shuffle(order)
+random.shuffle(order)
 
 
 def territories(color, continents):
@@ -543,25 +543,25 @@ for continent in continents:
 # green.give_card(Card(Troop.CAVALRY, NA3))
 # green.give_card(Card(Troop.ARTILLERY, NA4))
 
-game_over = False
-while not game_over:
-    # Remove defeated players.
-    order = remove_defeated(order)
-    # Check if there's a victor.
-    if len(order) == 1:
-        print("\n\n%s Player won! Congratulations!\n\n" %
-              str(order[0].get_color()))
-        game_over = True
-    # Make a turn.
-    else:
-        # Check if at least one player can attack.
-        if not check_attack_everyone(order, continents):
-            print("\n\nNo one can attack on this turn!\n\n")
-            # game_over = True
-        curr_player = order.pop(0)
-        order.append(curr_player)
-        print("\nCurrent player: %s.\n" % str(curr_player.get_color()))
-        set_continent_owners(continents)
-        deploy_phase(curr_player)
-        attack_phase(curr_player)
-        fortify_phase(curr_player)
+# game_over = False
+# while not game_over:
+#     # Remove defeated players.
+#     order = remove_defeated(order)
+#     # Check if there's a victor.
+#     if len(order) == 1:
+#         print("\n\n%s Player won! Congratulations!\n\n" %
+#               str(order[0].get_color()))
+#         game_over = True
+#     # Make a turn.
+#     else:
+#         # Check if at least one player can attack.
+#         if not check_attack_everyone(order, continents):
+#             print("\n\nNo one can attack on this turn!\n\n")
+#             # game_over = True
+#         curr_player = order.pop(0)
+#         order.append(curr_player)
+#         print("\nCurrent player: %s.\n" % str(curr_player.get_color()))
+#         set_continent_owners(continents)
+#         deploy_phase(curr_player)
+#         attack_phase(curr_player)
+#         fortify_phase(curr_player)

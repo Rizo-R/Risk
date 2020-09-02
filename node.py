@@ -3,7 +3,7 @@ from color import Color
 
 class Node():
 
-    def __init__(self, id, name, owner=Color.NONE, neighbors=[], numtroops=-1):
+    def __init__(self, id, name, owner=Color.NONE, neighbors=[], numtroops=-1, location=(0, 0)):
         ''' Initiates a Node object with given [id] (int), [name] of the region
         (string), [owner] (Color object), [neighbors] (list of Node 
         objects.), and [numtroops] (int).'''
@@ -12,6 +12,9 @@ class Node():
         self.owner = owner
         self.neighbors = neighbors
         self.numtroops = numtroops
+        self.location = location
+        self.selected = False
+        self.attackable = False
 
     def __repr__(self):
         return "Node" + str(self.id) + ": " + str(self.owner) + " " + \
@@ -39,11 +42,53 @@ class Node():
     def get_troops(self):
         return self.numtroops
 
+    def get_location(self):
+        return self.location
+
+    def get_colors(self):
+        colors = {
+            "RED": [(200, 0, 0), (220, 0, 0), (255, 0, 0)],
+            "YELLOW": [(200, 200, 0), (220, 220, 0), (255, 255, 0)],
+            "GREEN": [(0, 200, 0), (0, 220, 0), (0, 255, 0)],
+            "CYAN": [(0, 200, 200), (0, 220, 220), (0, 255, 255)],
+            "BLUE": [(0, 0, 200), (0, 0, 220), (0, 0, 255)],
+            "PURPLE": [(200, 0, 200), (220, 0, 220), (255, 0, 255)],
+        }
+        return colors[self.owner.name]
+
+    def is_selected(self):
+        return self.selected
+
+    def is_attackable(self):
+        return self.attackable
+
     def set_owner(self, owner):
         self.owner = owner
 
     def set_troops(self, numtroops):
         self.numtroops = numtroops
+
+    def set_location(self, location):
+        self.location = location
+
+    def select(self):
+        self.selected = True
+
+    def select_for_attack(self):
+        self.selected = True
+        for node in self.neighbors:
+            node.attackable = True
+
+    def deselect_for_attack(self):
+        self.selected = False
+        for node in self.neighbors:
+            node.attackable = False
+
+    def deselect(self):
+        self.selected = False
+
+    def set_attackable(self, attackable):
+        self.attackable = attackable
 
     def add_troops(self, numtroops):
         self.numtroops += numtroops

@@ -12,4 +12,7 @@ class Color(Enum):
     NONE = '\x1b[6;30;42m'
 
     def __str__(self):
-        return self.value + self.name + Color.ENDC.value
+        return self.name
+
+    # def __str__(self):
+    #     return self.value + self.name + Color.ENDC.value
