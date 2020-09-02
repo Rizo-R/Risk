@@ -13,8 +13,6 @@ class Node():
         self.neighbors = neighbors
         self.numtroops = numtroops
         self.location = location
-        self.selected = False
-        self.attackable = False
 
     def __repr__(self):
         return "Node" + str(self.id) + ": " + str(self.owner) + " " + \
@@ -56,12 +54,6 @@ class Node():
         }
         return colors[self.owner.name]
 
-    def is_selected(self):
-        return self.selected
-
-    def is_attackable(self):
-        return self.attackable
-
     def set_owner(self, owner):
         self.owner = owner
 
@@ -70,25 +62,6 @@ class Node():
 
     def set_location(self, location):
         self.location = location
-
-    def select(self):
-        self.selected = True
-
-    def select_for_attack(self):
-        self.selected = True
-        for node in self.neighbors:
-            node.attackable = True
-
-    def deselect_for_attack(self):
-        self.selected = False
-        for node in self.neighbors:
-            node.attackable = False
-
-    def deselect(self):
-        self.selected = False
-
-    def set_attackable(self, attackable):
-        self.attackable = attackable
 
     def add_troops(self, numtroops):
         self.numtroops += numtroops
