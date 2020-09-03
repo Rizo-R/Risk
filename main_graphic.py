@@ -5,6 +5,7 @@ import time
 
 from main import *
 
+
 pygame.init()
 
 display_width = 1200
@@ -15,11 +16,13 @@ grey = (50, 50, 50)
 white = (255, 255, 255)
 red = (200, 0, 0)
 green = (0, 200, 0)
+blue = (0, 0, 255)
+brown = (139, 69, 19)
+
 brighter_red = (220, 0, 0)
 brighter_green = (0, 220, 0)
 brightest_red = (255, 0, 0)
 brightest_green = (0, 255, 0)
-blue = (0, 0, 255)
 
 button_radius = 75
 
@@ -50,35 +53,113 @@ def text_objects(text, font, color=black):
     return textSurface, textSurface.get_rect()
 
 
-def button(text, x, y, width, height, inactive_color, active_color, click_color=None, label_color=black,
-           font_type="freesansbold.ttf", font_size=20, action=None):
-    if click_color is None:
-        click_color = active_color
+def load_img(path):
+    img_unscaled = pygame.image.load(path)
+    x, y = img_unscaled.get_rect().size
+    img = pygame.transform.scale(
+        img_unscaled, (int(x*display_width/1600), int(y*display_height/1200)))
+    return img
+
+
+def button_textless_rect(x, y, inactive_img, active_img, action=None, alternative_action=None):
 
     mouse = pygame.mouse.get_pos()
     click = pygame.mouse.get_pressed()
 
-    if x < mouse[0] < x + width and y < mouse[1] < y + height:
-        pygame.draw.rect(gameDisplay, active_color, (x, y, width, height))
+    width, height = inactive_img.get_rect().size
 
-        # print(click)
+    if x-width/2 < mouse[0] < x+width/2 and y-height/2 < mouse[1] < y+height/2:
+        # print('if')
+        gameDisplay.blit(active_img, (x-width/2, y-height/2))
         if click[0] == 1:
-            if action != None:
+            if action is not None:
                 action()
-            else:
-                pygame.draw.rect(gameDisplay, click_color,
-                                 (x, y, width, height))
+    # elif click[0] == 1 and alternative_action is not None:
+    #     alternative_action()
     else:
-        pygame.draw.rect(gameDisplay, inactive_color, (x, y, width, height))
+        # print('else')
+        gameDisplay.blit(inactive_img, (x-width/2, y-height/2))
 
-    smallText = pygame.font.SysFont('comicsansms', 20)
-    textSurf, textRect = text_objects(text, smallText)
-    textRect.center = (x+(width/2), y+(height/2))
-    gameDisplay.blit(textSurf, textRect)
+    # pygame.display.update()
+    # clock.tick(15)
+
+
+def button_textless_circular(x, y, inactive_img, active_img, action=None, alternative_action=None):
+
+    mouse = pygame.mouse.get_pos()
+    click = pygame.mouse.get_pressed()
+
+    width, height = inactive_img.get_rect().size
+    radius = width/2
+
+    if distance(mouse, (x, y)) <= radius:
+        # print('if')        
+        gameDisplay.blit(active_img, (x-width/2,y-height/2))
+        
+        if click[0] == 1:
+            if action is not None:
+                action()
+    # elif click[0] == 1 and alternative_action is not None:
+    #     alternative_action()
+    else:
+        # print('else')
+        width, height = inactive_img.get_rect().size
+        gameDisplay.blit(inactive_img, (x-width/2,y-height/2))
+
+    # pygame.display.update()
+    # clock.tick(15)
 
 
 def distance(pos1, pos2):
     return math.sqrt((pos2[0]-pos1[0])**2 + (pos2[1]-pos1[1])**2)
+
+
+def node_button_deploy(node, radius, width=0, font_color=white,
+                       font_type='roboto', font_size=30, curr_player=None):
+    global selected_node_deploy
+    global deploy_in_progress
+
+    # For some reason, when resizing, one needs to keep the old node locations
+    # when placing nodes BUT new locations when calculating distances, which
+    # is reflected in the variables (x, y) - "old", and (x_dist, y_dist) -
+    # "new", resized.
+    x, y = node.get_location()
+    x_dist, y_dist = locations[node.get_name()]
+    # Inactive color, active color, click color.
+    ic, ac, cc = colors[node.get_owner().name]
+
+    mouse = pygame.mouse.get_pos()
+    click = pygame.mouse.get_pressed()
+
+    # Node already selected.
+    if selected_node_deploy == node:
+        pygame.draw.circle(gameDisplay, cc, (x, y), radius, width)
+        if not deploy_in_progress and click[0] and distance(mouse, (x_dist, y_dist)) > radius+width:
+            selected_node_deploy = None
+    elif selected_node_deploy is not None:
+        pygame.draw.circle(gameDisplay, ic, (x, y), radius, width)
+
+    # No node yet selected and this node is belongs to the player.
+    if node.get_owner() == curr_player.get_color():
+        # Mouse hovered over the node.
+        if distance(mouse, (x_dist, y_dist)) <= radius+width:
+            # Node selected.
+            if click[0]:
+                selected_node_deploy = node
+                deploy_in_progress = True
+            pygame.draw.circle(gameDisplay, cc, (x, y), radius, width)
+        else:
+            pygame.draw.circle(gameDisplay, ac, (x, y), radius, width)
+    # This node can't be selected since it doesn't belong to the player.
+    else:
+        pygame.draw.circle(gameDisplay, ic, (x, y), radius, width)
+
+    # Display troops.
+    smallText = pygame.font.SysFont(font_type, font_size)
+    textSurf, textRect = text_objects(
+        str(node.get_troops()), smallText, font_color)
+    textRect.center = (x, y)
+    gameDisplay.blit(textSurf, textRect)
 
 
 def node_button_attack_from(node, radius, width=0, font_color=white,
@@ -201,6 +282,108 @@ def node_button_attack_to(node,  radius, width=0, font_color=white,
     gameDisplay.blit(textSurf, textRect)
 
 
+def num_displayed_increase():
+    '''Helper function for display_numbers().'''
+    global num_displayed
+    num_displayed += 1
+
+
+def num_displayed_decrease():
+    '''Helper function for display_numbers().'''
+    global num_displayed
+    num_displayed -= 1
+
+
+def deselect_deploy_node():
+    '''Helper function for display_numbers().'''
+    global selected_node_deploy
+    global deploy_in_progress
+    selected_node_deploy = None
+    deploy_in_progress = False
+
+
+def place_troops():
+    '''Helper function for display_numbers().'''
+    global num_displayed
+    global selected_node_deploy
+    global deploy_in_progress
+
+    assert selected_node_deploy is not None
+    assert deploy_in_progress == True
+
+    curr_player = find_player(selected_node_deploy.get_owner(), order)
+
+    selected_node_deploy.add_troops(num_displayed)
+    curr_player.subtract_troops(num_displayed)
+    selected_node_deploy = None
+    deploy_in_progress = False
+
+def go_back_deploy():
+    global deploy_in_progress
+    global selected_node_deploy
+
+    deploy_in_progress = False
+    selected_node_deploy = None
+
+
+def display_numbers(max_num, curr_player):
+    ''' Displays a numerical window to choose the number of troops with the 
+    two arrows. Numbers go from 1 to [max_num] and then, if increased, cycle 
+    back to one; similarly, if user presses the "smaller" button when the
+    number displayed is 1, the next number is [max_num].
+
+    Preconditions: [max_num] is int; [phase] is either "deploy"'''
+    global num_displayed
+    global deploy_in_progress
+
+
+    number_bg_img = load_img("Number_bg.png")
+    right_img = load_img("Right.png")
+    right_active_img = load_img("Right_active.png")
+    left_img = load_img("Left.png")
+    left_active_img = load_img("Left_active.png")
+    tick_img = load_img("Tick.png")
+    tick_active_img = load_img("Tick_active.png")
+    cross_img = load_img("Cross.png")
+    cross_active_img = load_img("Cross_active.png")
+
+    print(num_displayed)
+    # If player clicks outside of the table, one has to select a node again.
+    button_textless_rect(0.125*display_width, display_height/9,
+                    number_bg_img, number_bg_img, alternative_action=deselect_deploy_node)
+    button_textless_rect(0.17*display_width, display_height/9,
+                    right_img, right_active_img, action=num_displayed_increase)
+    button_textless_rect(0.08*display_width, display_height/9,
+                    left_img, left_active_img, action=num_displayed_decrease)
+    button_textless_circular(0.22*display_width, display_height/9,
+                    tick_img, tick_active_img, action=place_troops)
+    button_textless_circular(0.03*display_width, display_height/9,
+                    cross_img, cross_active_img, action=place_troops)
+    
+    if not deploy_in_progress:
+        return
+    # Check if the number went out of bounds.
+    if num_displayed > max_num or num_displayed < 0:
+        num_displayed %= max_num
+    elif num_displayed == 0:
+        num_displayed = max_num
+    # Display the number.
+    numberText = pygame.font.SysFont("consolas", 30, bold=True)
+    textSurf, textRect = text_objects(str(num_displayed), numberText, brown)
+    textRect.center = (0.125*display_width, display_height/9)
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            game_quit()
+        if event.type == pygame.VIDEORESIZE:
+            rescale_locations(event.w, event.h)
+
+    gameDisplay.blit(textSurf, textRect)
+
+    pygame.display.update()
+    clock.tick(15)
+
+
 def current_player_display(curr_player, loc):
     left, y = loc
     curr_color = curr_player.get_color()
@@ -213,6 +396,12 @@ def current_player_display(curr_player, loc):
     TextRect.y = y
 
     gameDisplay.blit(TextSurface, TextRect)
+
+
+def display_nodes_deploy(node_lst, curr_player):
+    for node in node_lst:
+        node_button_deploy(node, 20, width=5,
+                           font_color=white, curr_player=curr_player)
 
 
 def display_nodes_attack_from(node_lst, curr_player):
@@ -228,10 +417,18 @@ def display_nodes_attack_to(node_lst, curr_player):
 
 
 def print_console(text):
-    consoleText = pygame.font.SysFont("consolas", 30, bold=False)
+    consoleText = pygame.font.SysFont("consolas", 23, bold=True)
     textSurf, textRect = text_objects(text, consoleText, white)
     textRect.left = 10
     textRect.y = 865
+
+    gameDisplay.blit(textSurf, textRect)
+
+
+def print_phase(phase):
+    phaseText = pygame.font.SysFont("trebuchet", 60, bold=False)
+    textSurf, textRect = text_objects(phase, phaseText, white)
+    textRect.center = ((0.5*display_width, display_height/36))
 
     gameDisplay.blit(textSurf, textRect)
 
@@ -306,6 +503,22 @@ for node in all_nodes:
     node.set_location(locations[node.get_name()])
 
 
+def darken_screen():
+    dark = pygame.Surface(
+        (bgImg.get_width(), bgImg.get_height()), flags=pygame.SRCALPHA)
+    dark.fill((10, 10, 10, 0))
+    for _ in range(3):
+        bgImg.blit(dark, (0, 0), special_flags=pygame.BLEND_RGBA_SUB)
+
+
+def lighten_screen():
+    dark = pygame.Surface(
+        (bgImg.get_width(), bgImg.get_height()), flags=pygame.SRCALPHA)
+    dark.fill((10, 10, 10, 0))
+    for _ in range(3):
+        bgImg.blit(dark, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
+
+
 def blitz_attack(from_node, to_node):
     '''Conducts blitz attack between the two nodes and changes the results.
     Returns a boolean representing whether attack was successful or not.
@@ -333,12 +546,85 @@ def blitz_attack(from_node, to_node):
         raise ValueError("Wrong results for blitz: (%i, %i)" % blitz_res)
 
 
+num_displayed = None
+selected_node_deploy = None
+# Represents if player is currently choosing the number of troops to be deployed.
+deploy_in_progress = False
+
+
+def deploy_phase(curr_player):
+    global selected_node_deploy
+    global deploy_in_progress
+    global num_displayed
+
+    deploy_in_progress = False
+
+    curr_color = curr_player.get_color()
+    troops_gained, _, _ = calculate_troops_gained(curr_color, continents, True)
+    curr_player.add_troops(troops_gained)
+
+    while curr_player.get_troops() > 0:
+
+        # Selecting node to put troops to.
+        while selected_node_deploy is None:
+
+            gameDisplay.blit(bgImg, (0, 0))
+            print_phase("DEPLOY")
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    game_quit()
+                if event.type == pygame.VIDEORESIZE:
+                    rescale_locations(event.w, event.h)
+
+            if curr_player.get_troops() == 1:
+                print_console(
+                    "%s Player: Choose where to deploy troops. You have %i more troop." % (curr_color, curr_player.get_troops()))
+            else:
+                print_console(
+                    "%s Player: Choose where to deploy troops. You have %i more troops." % (curr_color, curr_player.get_troops()))
+            display_nodes_deploy(all_nodes, curr_player)
+
+            pygame.display.update()
+            clock.tick(15)
+
+        # Selecting the number of troops to put.
+        darken_screen()
+        num_displayed = curr_player.get_troops()
+        while deploy_in_progress:
+
+            gameDisplay.blit(bgImg, (0, 0))
+            print_console("%s Player: Choose how many troops to deploy in %s." % (
+                curr_color, selected_node_deploy.get_name()))
+            print_phase("DEPLOY")
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    game_quit()
+                if event.type == pygame.VIDEORESIZE:
+                    rescale_locations(event.w, event.h)
+
+            display_nodes_deploy(all_nodes, curr_player)
+            display_numbers(curr_player.get_troops(), curr_player)
+
+            # tick_img = pygame.image.load("Tick.png")
+            # tick_active_img = pygame.image.load("Tick_active.png")
+
+            # button_textless(int(0.1*display_width), int(display_height/8),
+            #                 tick_img, tick_active_img, action=place_troops)
+
+            pygame.display.update()
+            pygame.event.get()
+            clock.tick(15)
+        lighten_screen()
+
+
 blitz_res = None
 selected_node_attack_from = None
 selected_node_attack_to = None
 
 
-def attack_phase():
+def attack_phase(curr_player):
     global blitz_res
     global selected_node_attack_from
     global selected_node_attack_to
@@ -347,16 +633,16 @@ def attack_phase():
     selected_node_attack_from = None
     selected_node_attack_to = None
 
-    curr_player = order.pop(0)
-    order.append(curr_player)
     curr_color = curr_player.get_color()
-    phase_over = False
 
+    phase_over = False
     while not phase_over:
 
-        # Selecting a node to attack from.
+        gameDisplay.blit(bgImg, (0, 0))
+        print_phase("ATTACK")
+
+        # Selecting node to attack from.
         while selected_node_attack_from is None:
-            gameDisplay.blit(bgImg, (0, 0))
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -380,7 +666,6 @@ def attack_phase():
                 break
 
             gameDisplay.blit(bgImg, (0, 0))
-
             display_nodes_attack_to(all_nodes, curr_player)
 
             for event in pygame.event.get():
@@ -415,4 +700,17 @@ def attack_phase():
 
 
 while True:
-    attack_phase()
+    curr_player = order.pop(0)
+    order.append(curr_player)
+    # num_displayed = curr_player.get_troops()
+    # i = 0
+    # while i < 100:
+    #     tick_img = pygame.image.load("Tick.png").convert()
+    #     tick_img = pygame.transform.scale(tick_img, (display_width, display_height))
+    #     gameDisplay.blit(bgImg, (0, 0))
+
+    #     pygame.display.update()
+    #     clock.tick(15)
+    #     i += 1
+    deploy_phase(curr_player)
+    attack_phase(curr_player)
