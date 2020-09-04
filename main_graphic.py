@@ -4,6 +4,7 @@ import random
 import time
 
 from main import *
+from path import path_exists
 
 
 pygame.init()
@@ -167,7 +168,6 @@ def node_button_deploy(node, radius, width=0, font_color=white,
     textRect.center = (x, y)
     gameDisplay.blit(textSurf, textRect)
 
-
 def node_button_attack_from(node, radius, width=0, font_color=white,
                             font_type='roboto', font_size=30, action=None, curr_player=None):
     global selected_node_attack_from
@@ -287,6 +287,122 @@ def node_button_attack_to(node,  radius, width=0, font_color=white,
     textRect.center = (x, y)
     gameDisplay.blit(textSurf, textRect)
 
+def node_button_fortify_from(node, radius, width=0, font_color=white,
+                            font_type='roboto', font_size=30, action=None, curr_player=None):
+    global selected_node_fortify_from
+
+    troops = node.get_troops()
+    # For some reason, when resizing, one needs to keep the old node locations
+    # when placing nodes BUT new locations when calculating distances, which
+    # is reflected in the variables (x, y) - "old", and (x_dist, y_dist) -
+    # "new", resized.
+    x, y = node.get_location()
+    x_dist, y_dist = locations[node.get_name()]
+    # Inactive color, active color, click color.
+    ic, ac, cc = colors[node.get_owner().name]
+
+    mouse = pygame.mouse.get_pos()
+    click = pygame.mouse.get_pressed()
+
+    # Node already selected.
+    if selected_node_fortify_from is not None:
+        if selected_node_attack_from == node:
+            pygame.draw.circle(gameDisplay, cc, (x, y), radius, width)
+            return
+        else:
+            pygame.draw.circle(gameDisplay, ic, (x, y), radius, width)
+            return
+
+    # No node is currently selected.
+    # Could potentially choose the node.
+    if node.get_owner() == curr_player.get_color() and troops > 1:
+        # Mouse hovered over a node that could potentially be selected.
+        if distance(mouse, (x_dist, y_dist)) <= radius+width:
+            # Node selected.
+            if click[0]:
+                selected_node_fortify_from = node
+            pygame.draw.circle(gameDisplay, cc, (x, y), radius, width)
+        else:
+            pygame.draw.circle(gameDisplay, ac, (x, y), radius, width)
+    # Node doesn't belong to the player or has 1 troop.
+    else:
+        pygame.draw.circle(gameDisplay, ic, (x, y), radius, width)
+
+    # Display troops.
+    smallText = pygame.font.SysFont(font_type, font_size)
+    textSurf, textRect = text_objects(str(troops), smallText, font_color)
+    textRect.center = (x, y)
+    gameDisplay.blit(textSurf, textRect)
+
+
+def node_button_fortify_to(node,  radius, width=0, font_color=white,
+                          font_type='roboto', font_size=30, action=None, curr_player=None):
+    global selected_node_fortify_from
+    global selected_node_fortify_to
+
+    # For some reason, when resizing, one needs to keep the old node locations
+    # when placing nodes BUT new locations when calculating distances, which
+    # is reflected in the variables (x, y) - "old", and (x_dist, y_dist) -
+    # "new", resized.
+    x, y = node.get_location()
+    x_dist, y_dist = locations[node.get_name()]
+    # Inactive color, active color, click color.
+    ic, ac, cc = colors[node.get_owner().name]
+
+    # Needs to choose a node to fortify from again.
+    if selected_node_fortify_from is None:
+        pygame.draw.circle(gameDisplay, ic, (x, y), radius, width)
+        return
+    # Node to fortify has already been picked.
+    elif selected_node_fortify_to is not None and selected_node_fortify_to != node:
+        pygame.draw.circle(gameDisplay, ic, (x, y), radius, width)
+        return
+
+
+    mouse = pygame.mouse.get_pos()
+    click = pygame.mouse.get_pressed()
+
+    # Current node is selected.
+    if selected_node_fortify_from == node:
+        # Code below might be confusing but it's necessary for bug-free run.
+        # If left-click is made AND it is not on the one of the possible options
+        # reassign selected_node_fortify_from and go back to selecting the node
+        # to fortify from. Otherwise, return before reassigning the global
+        # variable and let the other nodes conduct the fortify and record
+        # changes.
+        if click[0] and distance(mouse, (x_dist, y_dist)) > radius+width:
+            for n in all_nodes:
+                x_dist_n, y_dist_n = locations[n.get_name()]
+                if distance(mouse, (x_dist_n, y_dist_n)) <= radius+width and path_exists(selected_node_fortify_from, n):
+                    return
+            selected_node_attack_from = None
+        # Still selected but no click.
+        else:
+            pygame.draw.circle(gameDisplay, cc, (x, y), radius, width)
+    # Node could reached from a selected node.
+    elif path_exists(selected_node_fortify_from, node) and node.get_owner() == selected_node_fortify_from.get_owner():
+        # Mouse is hovered above the node.
+        if distance(mouse, (x_dist, y_dist)) <= radius+width:
+            # Node is selected to be attacked.
+            if click[0]:
+                selected_node_fortify_to = node
+                pygame.draw.circle(gameDisplay, ic, (x, y), radius, width)
+            else:
+                pygame.draw.circle(gameDisplay, cc, (x, y), radius, width)
+        # Mouse is not above the node.
+        else:
+            pygame.draw.circle(gameDisplay, ac, (x, y), radius, width)
+    # Node cannot be fortified from a selected node.
+    else:
+        pygame.draw.circle(gameDisplay, ic, (x, y), radius, width)
+
+    # Display troops.
+    smallText = pygame.font.SysFont(font_type, font_size)
+    textSurf, textRect = text_objects(
+        str(node.get_troops()), smallText, font_color)
+    textRect.center = (x, y)
+    gameDisplay.blit(textSurf, textRect)
+
 
 def num_displayed_increase():
     '''Helper function for display_numbers().'''
@@ -348,18 +464,43 @@ def occupy_territory():
 
     territory_occupied = True
 
-# def go_back_occupy():
-#     '''Helper function for display_numbers().'''
-#     global territories
-#     global selected_node_deploy
+def fortify_territory():
+    '''Helper function for display_numbers().'''
+    global num_displayed
+    global selected_node_fortify_from
+    global selected_node_fortify_to
+    global fortify_in_progress
+    global fortify_phase
 
-#     deploy_in_progress = False
-#     selected_node_deploy = None
+    assert selected_node_fortify_to is not None
+    assert not territory_occupied
+    assert fortify_in_progress
+
+    selected_node_fortify_to.add_troops(num_displayed)
+    selected_node_fortify_from.subtract_troops(num_displayed)
+
+    fortify_in_progress = False
+    fortify_phase_over = True
+
+def go_back_fortify():
+    '''Helper function for display_numbers().'''
+    global selected_node_fortify_from
+    global selected_node_fortify_to
+    global fortify_in_progress
+
+    selected_node_fortify_from = None
+    selected_node_fortify_to = None
+    fortify_in_progress = False
 
 def finish_attack_phase():
     global attack_phase_over
     assert not attack_phase_over
     attack_phase_over = True
+
+def finish_fortify_phase():
+    global fortify_phase_over
+    assert not fortify_phase_over
+    fortify_phase_over = True
 
 
 def display_numbers(max_num, min_num=1, tick_action=None, cross_action=None, running_condition=None):
@@ -439,16 +580,25 @@ def display_nodes_deploy(node_lst, curr_player):
         node_button_deploy(node, 20, width=5,
                            font_color=white, curr_player=curr_player)
 
-
 def display_nodes_attack_from(node_lst, curr_player):
     for node in node_lst:
         node_button_attack_from(node, 20, width=5, font_color=white,
                                 action=None, curr_player=curr_player)
 
-
 def display_nodes_attack_to(node_lst, curr_player):
     for node in node_lst:
         node_button_attack_to(node, 20, width=5, font_color=white,
+                              action=None, curr_player=curr_player)
+                              
+def display_nodes_fortify_from(node_lst, curr_player):
+    for node in node_lst:
+        node_button_fortify_from(node, 20, width=5, font_color=white,
+                                action=None, curr_player=curr_player)
+
+
+def display_nodes_fortify_to(node_lst, curr_player):
+    for node in node_lst:
+        node_button_fortify_to(node, 20, width=5, font_color=white,
                               action=None, curr_player=curr_player)
 
 
@@ -767,6 +917,105 @@ def attack_phase(curr_player):
             clock.tick(15)
 
 
+selected_node_fortify_from = None
+selected_node_fortify_to = None
+fortify_in_progress = None
+fortify_phase_over = None
+
+
+def fortify_phase(curr_player):
+    global selected_node_fortify_from
+    global selected_node_fortify_to
+    global fortify_in_progress
+    global fortify_phase_over
+
+    selected_node_fortify_from = None
+    selected_node_fortify_to = None
+    fortify_in_progress = False
+    fortify_phase_over = False
+
+    curr_color = curr_player.get_color()
+    skip_img = load_img("Skip.png")
+    skip_active_img = load_img("Skip_active.png")
+
+    while not fortify_phase_over:
+
+        # Selecting node to attack from.
+        while selected_node_fortify_from is None:
+            
+            gameDisplay.blit(bgImg, (0, 0))
+            print_phase("FORTIFY")
+            
+            # Finish phase button.
+            button_textless_circular(0.925*display_width, display_height/10, skip_img, skip_active_img, action=finish_fortify_phase)
+            if fortify_phase_over:
+                break
+
+            event_loop()
+
+            print_console("%s Player: pick a territory to transfer troops from. The territory should have at least 1 troop." %
+                          curr_color)
+            display_nodes_fortify_from(all_nodes, curr_player)
+
+            pygame.display.update()
+            clock.tick(15)
+
+        # Selecting a node to attack.
+        while selected_node_fortify_to is None:
+            # Node to attack from was unselected. Return to the first while-loop.
+            if selected_node_fortify_from is None:
+                break
+
+            gameDisplay.blit(bgImg, (0, 0))
+            print_phase("FORTIFY")
+            display_nodes_fortify_to(all_nodes, curr_player)
+            print_console("%s Player: Choose a territory connected to %s to fortify." % (curr_color, selected_node_fortify_from.get_name()))
+
+            # Finish phase.
+            button_textless_rect(0.925*display_width, display_height/10, skip_img, skip_active_img, action=finish_fortify_phase)
+            if fortify_phase_over:
+                break
+
+            event_loop()
+
+
+            # Let player choose how many troops to move.
+            if selected_node_fortify_from is not None and selected_node_fortify_to is not None:
+                fortify_in_progress = True
+                darken_screen()
+                while fortify_in_progress:
+
+                    gameDisplay.blit(bgImg, (0, 0))
+                    print_phase("FORTIFY")
+                    display_nodes_fortify_to(all_nodes, curr_player)
+
+                    event_loop()
+                    
+                    from_node = selected_node_fortify_from
+                    to_node = selected_node_fortify_to
+                    
+                    print_console("%s Player: Move up to %i troops from %s to %s." % (curr_color, from_node.get_troops()-1, from_node.get_name(), to_node.get_name()))
+                    display_numbers(max_num=from_node.get_troops()-1, min_num=1, tick_action=fortify_territory, cross_action=go_back_fortify, running_condition=fortify_in_progress)
+
+                    pygame.display.update()
+                    clock.tick(15)
+                lighten_screen()
+
+            pygame.display.update()
+            clock.tick(15)
+        
+        if selected_node_fortify_to is not None:
+            assert selected_node_fortify_from is not None
+
+            # Reset global variables.
+            selected_node_fortify_from = None
+            selected_node_fortify_to = None
+            fortify_in_progress = False
+
+            # Finish Fortify phase.
+            fortify_phase_over = True
+
+
 while True:
     curr_player = order.pop(0)
     order.append(curr_player)
@@ -782,3 +1031,4 @@ while True:
     #     i += 1
     deploy_phase(curr_player)
     attack_phase(curr_player)
+    fortify_phase(curr_player)

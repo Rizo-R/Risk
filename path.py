@@ -9,6 +9,8 @@ def path_exists(node1, node2):
     assumed to have a distance of 1.
     Returns a boolean.
 
+    Precondition: [node1] and [node2] both belong to the same player.
+
     Credits to Prof. David Gries and his course CS 2110 at Cornell University.'''
     distances_settled = {}
     distances_frontier = {}
