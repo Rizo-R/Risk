@@ -19,6 +19,7 @@ red = (200, 0, 0)
 green = (0, 200, 0)
 blue = (0, 0, 255)
 brown = (139, 69, 19)
+lavender = (230,230,250)
 
 brighter_red = (220, 0, 0)
 brighter_green = (0, 220, 0)
@@ -35,6 +36,7 @@ clock = pygame.time.Clock()
 
 bgImg_unscaled = pygame.image.load("map.png").convert()
 bgImg = pygame.transform.scale(bgImg_unscaled, (display_width, display_height))
+
 
 dim = 170
 bright = 200
@@ -67,6 +69,7 @@ def load_img(path):
         img_unscaled, (int(x*display_width/1600), int(y*display_height/1200)))
     return img
 
+message_img = load_img("Message_table.png")
 
 def button_textless_rect(x, y, inactive_img, active_img, action=None, alternative_action=None):
 
@@ -567,12 +570,11 @@ def current_player_display(curr_player, loc):
 
     display_colors = colors[curr_color.name]
     largeText = pygame.font.SysFont("consolas", 30, bold=False)
-    TextSurface, TextRect = text_objects(
-        curr_color.name, largeText, display_colors[2])
-    TextRect.left = left
-    TextRect.y = y
+    textSurface, textRect = text_objects(curr_color.name, largeText, display_colors[2])
+    textRect.left = left
+    textRect.y = y
 
-    gameDisplay.blit(TextSurface, TextRect)
+    gameDisplay.blit(textSurface, textRect)
 
 
 def display_nodes_deploy(node_lst, curr_player):
@@ -618,6 +620,10 @@ def print_phase(phase):
 
     gameDisplay.blit(textSurf, textRect)
 
+def close_msg_display():
+    global msg_displayed    
+    assert msg_displayed
+    msg_displayed = False
 
 def game_quit():
     pygame.quit()
@@ -733,6 +739,142 @@ def blitz_attack(from_node, to_node):
     else:
         raise ValueError("Wrong results for blitz: (%i, %i)" % blitz_res)
 
+def set_continent_owners(continents):
+    '''Checks if any of the continents is owned by a single color and
+    sets owners if there are ones.'''
+    for continent in continents:
+        single_owner = True
+        node_lst = continent.get_nodes()
+        possible_owner = node_lst[0].get_owner()
+        for node in node_lst[1:]:
+            if node.get_owner() != possible_owner:
+                single_owner = False
+                continent.demonopolize()
+                break
+        if single_owner:
+            continent.monopolize(possible_owner)
+
+def territories(color, continents):
+    '''Returns a list of territories (Node list) owned by a player with a
+    given color in the given continent list (can be empty).'''
+    res = []
+    for continent in continents:
+        for node in continent.get_nodes():
+            if node.get_owner() == color:
+                res.append(node)
+    return res
+
+def calculate_territorial_bonus(curr_color, continents):
+    '''Calculates the number of troops gained by the player with a given color
+    in the beginning of their turn.
+    Returns the number of gained troops (int), the number of territories owned
+    by the player (int), and the list of continents owned by the player
+    (Continent list).'''
+    continents_owned = []
+    territories_owned = len(territories(curr_color, continents))
+    territory_bonus = max(territories_owned//3, 3)
+    troops_gained = 0
+    troops_gained += territory_bonus
+    for continent in continents:
+        if continent.get_owner() == curr_color:
+            continents_owned.append(continent)
+            bonus = continent.get_bonus()
+            troops_gained += bonus
+    return troops_gained, territories_owned, continents_owned
+
+
+msg_displayed = False
+def show_new_troops(curr_player):
+    global msg_displayed
+
+    msg_displayed = True
+    while msg_displayed:
+        gameDisplay.blit(bgImg, (0,0))
+        print_phase("DEPLOY")
+        
+        boxRect = message_img.get_rect()
+        boxRect.center = (0.5*display_width, 0.5*display_height)
+        gameDisplay.blit(message_img, boxRect)
+
+        new_troops, num_terr, continents_owned = calculate_territorial_bonus(curr_player.get_color(), continents)
+
+        msgText = pygame.font.SysFont("consolas", 30, bold=True)
+
+        textSurf, textRect = text_objects("%s Player" % curr_player.get_color(), msgText, lavender)
+        textRect.left = 0.27*display_width
+        textRect.y = 0.275*display_height
+        gameDisplay.blit(textSurf, textRect)
+
+        # Display continental bonus.
+        i = 0
+        for continent in continents_owned:
+            textSurf, textRect = text_objects("%i troops for %s," % (continent.get_bonus(), continent.get_name()), msgText, black)
+            textRect.left = 0.27*display_width
+            textRect.y = 0.35*display_height + i * 0.05*display_height
+            gameDisplay.blit(textSurf, textRect)
+            i += 1
+        
+        # Display bonus for number of territories owned.
+        textSurf, textRect = text_objects("%i troops for %i territories." % (max(num_terr//3, 3), num_terr), msgText, black)
+        textRect.left = 0.27*display_width
+        textRect.y = 0.35*display_height + i * 0.05*display_height
+        gameDisplay.blit(textSurf, textRect)
+
+        i += 1    
+        # Display total territorial bonus.
+        textSurf, textRect = text_objects("Total %i troops." % new_troops, msgText, black)
+        textRect.left = 0.27*display_width
+        textRect.y = 0.35*display_height + i * 0.05*display_height
+        gameDisplay.blit(textSurf, textRect)
+
+        event_loop()
+
+        tick_img = load_img("Tick.png")
+        tick_active_img = load_img("Tick_active.png")
+        button_textless_circular(0.72*display_width, 0.71*display_height,
+                    tick_img, tick_active_img, action=close_msg_display)
+        
+        pygame.display.update()
+        clock.tick(15)
+
+def show_new_card(curr_player, card):
+    global msg_displayed
+
+    msg_displayed = True
+    while msg_displayed:
+        gameDisplay.blit(bgImg, (0,0))
+        
+        boxRect = message_img.get_rect()
+        boxRect.center = (0.5*display_width, 0.5*display_height)
+        gameDisplay.blit(message_img, boxRect)
+
+        new_troops, num_terr, continents_owned = calculate_territorial_bonus(curr_player.get_color(), continents)
+
+        msgText = pygame.font.SysFont("consolas", 30, bold=False)
+        
+        textSurf, textRect = text_objects("You got a card!", msgText, lavender)
+        textRect.left = 0.27*display_width
+        textRect.y = 0.275*display_height
+        gameDisplay.blit(textSurf, textRect)
+
+        # Display card.
+        textSurf, textRect = text_objects(str(card), msgText, black)
+        textRect.left = 0.27*display_width
+        textRect.y = 0.35*display_height
+        gameDisplay.blit(textSurf, textRect)
+
+        event_loop()
+
+        tick_img = load_img("Tick.png")
+        tick_active_img = load_img("Tick_active.png")
+        button_textless_circular(0.72*display_width, 0.71*display_height,
+                    tick_img, tick_active_img, action=close_msg_display)
+        
+        pygame.display.update()
+        clock.tick(15)
+
+    
+       
 
 num_displayed = None
 selected_node_deploy = None
@@ -812,12 +954,14 @@ def attack_phase(curr_player):
     global selected_node_attack_to
     global territory_occupied
     global attack_phase_over
+    global num_displayed
 
     blitz_res = None
     selected_node_attack_from = None
     selected_node_attack_to = None
     territory_occupied = False
     attack_phase_over = False
+    received_card = False
 
     curr_color = curr_player.get_color()
     skip_img = load_img("Skip.png")
@@ -869,6 +1013,8 @@ def attack_phase(curr_player):
 
             # Attack successful. Let player choose how many troops to move.
             if blitz_res and selected_node_attack_to.get_troops() > 3:
+                # Set num_displayed to 1 to show the max possible number.
+                num_displayed = 1
                 darken_screen()
                 while not territory_occupied:
 
@@ -890,6 +1036,9 @@ def attack_phase(curr_player):
                     clock.tick(15)
                 lighten_screen()
 
+            # Give a card.
+            if blitz_res:
+                received_card = True
 
             # Reset global variables to let player conduct another attack.
             if blitz_res is not None:
@@ -915,6 +1064,12 @@ def attack_phase(curr_player):
 
             pygame.display.update()
             clock.tick(15)
+    
+    # If player conquered anything, one receives a card.
+    if received_card:
+        card = all_cards.pop(0)
+        curr_player.give_card(card)
+        show_new_card(curr_player, card)
 
 
 selected_node_fortify_from = None
@@ -928,6 +1083,7 @@ def fortify_phase(curr_player):
     global selected_node_fortify_to
     global fortify_in_progress
     global fortify_phase_over
+    global num_displayed
 
     selected_node_fortify_from = None
     selected_node_fortify_to = None
@@ -982,6 +1138,8 @@ def fortify_phase(curr_player):
             # Let player choose how many troops to move.
             if selected_node_fortify_from is not None and selected_node_fortify_to is not None:
                 fortify_in_progress = True
+                # Display the max number that could be changed.
+                num_displayed = selected_node_fortify_from.get_troops()-1
                 darken_screen()
                 while fortify_in_progress:
 
@@ -1029,6 +1187,8 @@ while True:
     #     pygame.display.update()
     #     clock.tick(15)
     #     i += 1
+    set_continent_owners(continents)
+    show_new_troops(curr_player)
     deploy_phase(curr_player)
     attack_phase(curr_player)
     fortify_phase(curr_player)
