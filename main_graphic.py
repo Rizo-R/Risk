@@ -47,6 +47,12 @@ colors = {
     "PURPLE": [(dim, 0, dim), (bright, 0, bright), (brightest, 0, brightest)],
 }
 
+def event_loop():
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            game_quit()
+        if event.type == pygame.VIDEORESIZE:
+            rescale_locations(event.w, event.h)
 
 def text_objects(text, font, color=black):
     textSurface = font.render(text, True, color)
@@ -73,7 +79,7 @@ def button_textless_rect(x, y, inactive_img, active_img, action=None, alternativ
         gameDisplay.blit(active_img, (x-width/2, y-height/2))
         if click[0] == 1:
             if action is not None:
-                action()
+                action() 
     # elif click[0] == 1 and alternative_action is not None:
     #     alternative_action()
     else:
@@ -302,39 +308,72 @@ def deselect_deploy_node():
     deploy_in_progress = False
 
 
-def place_troops():
+def place_troops_deploy():
     '''Helper function for display_numbers().'''
     global num_displayed
     global selected_node_deploy
     global deploy_in_progress
 
     assert selected_node_deploy is not None
-    assert deploy_in_progress == True
-
-    curr_player = find_player(selected_node_deploy.get_owner(), order)
+    assert deploy_in_progress
 
     selected_node_deploy.add_troops(num_displayed)
     curr_player.subtract_troops(num_displayed)
+
     selected_node_deploy = None
     deploy_in_progress = False
 
 def go_back_deploy():
+    '''Helper function for display_numbers().'''
     global deploy_in_progress
     global selected_node_deploy
 
     deploy_in_progress = False
     selected_node_deploy = None
 
+def occupy_territory():
+    '''Helper function for display_numbers().'''
+    global num_displayed
+    global selected_node_attack_from
+    global selected_node_attack_to
+    global territory_occupied
 
-def display_numbers(max_num, curr_player):
+    assert selected_node_attack_to is not None
+    assert not territory_occupied
+
+    total_troops = selected_node_attack_from.get_troops() + selected_node_attack_to.get_troops()
+
+    selected_node_attack_to.set_troops(num_displayed)
+    selected_node_attack_from.set_troops(total_troops-num_displayed)
+
+    territory_occupied = True
+
+# def go_back_occupy():
+#     '''Helper function for display_numbers().'''
+#     global territories
+#     global selected_node_deploy
+
+#     deploy_in_progress = False
+#     selected_node_deploy = None
+
+def finish_attack_phase():
+    global attack_phase_over
+    assert not attack_phase_over
+    attack_phase_over = True
+
+
+def display_numbers(max_num, min_num=1, tick_action=None, cross_action=None, running_condition=None):
     ''' Displays a numerical window to choose the number of troops with the 
     two arrows. Numbers go from 1 to [max_num] and then, if increased, cycle 
     back to one; similarly, if user presses the "smaller" button when the
     number displayed is 1, the next number is [max_num].
+    In case if the tick is clicked, does [tick_action]. In case if the cross 
+    is clicked, does [cross_action]. At every frame, checks for 
+    [running_condition] and returns  if it's False.
 
-    Preconditions: [max_num] is int; [phase] is either "deploy"'''
+    Preconditions: [max_num] is int; [tick_action], [cross_action] are functions;
+    [running_condition] is bool.'''
     global num_displayed
-    global deploy_in_progress
 
 
     number_bg_img = load_img("Number_bg.png")
@@ -347,7 +386,6 @@ def display_numbers(max_num, curr_player):
     cross_img = load_img("Cross.png")
     cross_active_img = load_img("Cross_active.png")
 
-    print(num_displayed)
     # If player clicks outside of the table, one has to select a node again.
     button_textless_rect(0.125*display_width, display_height/9,
                     number_bg_img, number_bg_img, alternative_action=deselect_deploy_node)
@@ -356,32 +394,30 @@ def display_numbers(max_num, curr_player):
     button_textless_rect(0.08*display_width, display_height/9,
                     left_img, left_active_img, action=num_displayed_decrease)
     button_textless_circular(0.22*display_width, display_height/9,
-                    tick_img, tick_active_img, action=place_troops)
+                    tick_img, tick_active_img, action=tick_action)
     button_textless_circular(0.03*display_width, display_height/9,
-                    cross_img, cross_active_img, action=place_troops)
+                    cross_img, cross_active_img, action=cross_action)
     
-    if not deploy_in_progress:
+    if not running_condition:
         return
+
     # Check if the number went out of bounds.
-    if num_displayed > max_num or num_displayed < 0:
-        num_displayed %= max_num
-    elif num_displayed == 0:
+    if num_displayed > max_num:
+        num_displayed = min_num
+    elif num_displayed < min_num:
         num_displayed = max_num
     # Display the number.
     numberText = pygame.font.SysFont("consolas", 30, bold=True)
     textSurf, textRect = text_objects(str(num_displayed), numberText, brown)
     textRect.center = (0.125*display_width, display_height/9)
 
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            game_quit()
-        if event.type == pygame.VIDEORESIZE:
-            rescale_locations(event.w, event.h)
+    event_loop()
 
     gameDisplay.blit(textSurf, textRect)
 
     pygame.display.update()
     clock.tick(15)
+    
 
 
 def current_player_display(curr_player, loc):
@@ -522,10 +558,12 @@ def lighten_screen():
 def blitz_attack(from_node, to_node):
     '''Conducts blitz attack between the two nodes and changes the results.
     Returns a boolean representing whether attack was successful or not.
+    In case of a successful attack, moves all possible troops into a new
+    territory; however, this is done purely for bookkeeping purposes when 
+    letting the player choose how many troops to actually move in.
 
     Preconditions: from_node.get_troops() > 1 and to_node.get_troops() > 0;
         the nodes have two different owners.'''
-
     blitz_res = blitz(from_node.get_troops(), to_node.get_troops())
 
     if blitz_res[0] == 1:
@@ -539,8 +577,8 @@ def blitz_attack(from_node, to_node):
         from_node.set_troops(1)
         to_node.set_troops(blitz_res[0]-1)
         to_node.set_owner(from_node.get_owner())
-        print("\nYou now have 1 troop in %s and %i troops in %s." % (
-            from_node.get_name(), to_node.get_troops(), to_node.get_name()))
+        # print("\nYou now have 1 troop in %s and %i troops in %s." % (
+        #     from_node.get_name(), to_node.get_troops(), to_node.get_name()))
         return True
     else:
         raise ValueError("Wrong results for blitz: (%i, %i)" % blitz_res)
@@ -571,11 +609,7 @@ def deploy_phase(curr_player):
             gameDisplay.blit(bgImg, (0, 0))
             print_phase("DEPLOY")
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    game_quit()
-                if event.type == pygame.VIDEORESIZE:
-                    rescale_locations(event.w, event.h)
+            event_loop()
 
             if curr_player.get_troops() == 1:
                 print_console(
@@ -598,14 +632,10 @@ def deploy_phase(curr_player):
                 curr_color, selected_node_deploy.get_name()))
             print_phase("DEPLOY")
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    game_quit()
-                if event.type == pygame.VIDEORESIZE:
-                    rescale_locations(event.w, event.h)
+            event_loop()
 
             display_nodes_deploy(all_nodes, curr_player)
-            display_numbers(curr_player.get_troops(), curr_player)
+            display_numbers(max_num=curr_player.get_troops(), min_num=1, tick_action=place_troops_deploy, cross_action=go_back_deploy, running_condition=deploy_in_progress)
 
             # tick_img = pygame.image.load("Tick.png")
             # tick_active_img = pygame.image.load("Tick_active.png")
@@ -622,34 +652,42 @@ def deploy_phase(curr_player):
 blitz_res = None
 selected_node_attack_from = None
 selected_node_attack_to = None
+territory_occupied = None
+attack_phase_over = None
 
 
 def attack_phase(curr_player):
     global blitz_res
     global selected_node_attack_from
     global selected_node_attack_to
+    global territory_occupied
+    global attack_phase_over
 
     blitz_res = None
     selected_node_attack_from = None
     selected_node_attack_to = None
+    territory_occupied = False
+    attack_phase_over = False
 
     curr_color = curr_player.get_color()
+    skip_img = load_img("Skip.png")
+    skip_active_img = load_img("Skip_active.png")
 
-    phase_over = False
-    while not phase_over:
+    while not attack_phase_over:
 
-        gameDisplay.blit(bgImg, (0, 0))
-        print_phase("ATTACK")
 
         # Selecting node to attack from.
         while selected_node_attack_from is None:
+            
+            gameDisplay.blit(bgImg, (0, 0))
+            print_phase("ATTACK")
+            
+            # Finish phase.
+            button_textless_rect(0.825*display_width, display_height/10, skip_img, skip_active_img, action=finish_attack_phase)
+            if attack_phase_over:
+                break
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    game_quit()
-                if event.type == pygame.VIDEORESIZE:
-                    rescale_locations(event.w, event.h)
-                    # print(locations)
+            event_loop()
 
             print_console("%s Player: pick a territory to attack from. The territory should have at least 1 troop." %
                           curr_color)
@@ -666,21 +704,52 @@ def attack_phase(curr_player):
                 break
 
             gameDisplay.blit(bgImg, (0, 0))
+            print_phase("ATTACK")
             display_nodes_attack_to(all_nodes, curr_player)
+            print_console("%s Player: Choose an enemy territory to attack." % curr_color)
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    game_quit()
-                if event.type == pygame.VIDEORESIZE:
-                    rescale_locations(event.w, event.h)
-                    # print(locations)
+            # Finish phase.
+            button_textless_rect(0.825*display_width, display_height/10, skip_img, skip_active_img, action=finish_attack_phase)
+            if attack_phase_over:
+                break
+
+            event_loop()
 
             # current_player_display(curr_player, (10, 865))
 
+            # Attack successful. Let player choose how many troops to move.
+            if blitz_res:
+                darken_screen()
+                while not territory_occupied:
+
+                    gameDisplay.blit(bgImg, (0, 0))
+                    print_phase("ATTACK")
+                    display_nodes_attack_to(all_nodes, curr_player)
+
+                    event_loop()
+                    
+                    from_node = selected_node_attack_from
+                    to_node = selected_node_attack_to
+                    
+                    print_console("%s Player: Attack successful! Move up to %i troops in %s." % (curr_color, to_node.get_troops(), to_node.get_name()))
+                    # Currently: 1 troop in [from_node] and the remaining troops in [to_node]. Thus, can move up to [to_node.get_troops()] troops
+                    # into [to_node].
+                    display_numbers(max_num=to_node.get_troops(), min_num=3, tick_action=occupy_territory, cross_action=None, running_condition=not territory_occupied)
+
+                    pygame.display.update()
+                    clock.tick(15)
+                lighten_screen()
+
+
+            # Reset global variables to let player conduct another attack.
             if blitz_res is not None:
                 assert selected_node_attack_from is not None
                 assert selected_node_attack_to is not None
-                phase_over = True
+                blitz_res = None
+                selected_node_attack_from = None
+                selected_node_attack_to = None
+
+                # attack_phase_over = True
                 # Code below not working due to a bug in time.sleep() for Mac.
                 # node_to = selected_node_attack_to
                 # if blitz_res:
@@ -691,9 +760,7 @@ def attack_phase(curr_player):
                 #     print_console("%s Player: the attack was unsuccessful! You now have 1 troop in %s. %s Player has %i troops in %s." %
                 #                   (curr_color, selected_node_attack_from.get_name(), node_to.get_owner(), node_to.get_troops(), node_to.get_name()))
                 #     time.sleep(2)
-            else:
-                print_console(
-                    "%s Player: choose an enemy territory to attack." % curr_color)
+            # else:
 
             pygame.display.update()
             clock.tick(15)
