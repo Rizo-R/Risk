@@ -718,7 +718,7 @@ def attack_phase(curr_player):
             # current_player_display(curr_player, (10, 865))
 
             # Attack successful. Let player choose how many troops to move.
-            if blitz_res:
+            if blitz_res and selected_node_attack_to.get_troops() > 3:
                 darken_screen()
                 while not territory_occupied:
 
@@ -748,6 +748,7 @@ def attack_phase(curr_player):
                 blitz_res = None
                 selected_node_attack_from = None
                 selected_node_attack_to = None
+                territory_occupied = False
 
                 # attack_phase_over = True
                 # Code below not working due to a bug in time.sleep() for Mac.
