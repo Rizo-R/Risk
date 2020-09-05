@@ -38,7 +38,7 @@ bgImg_unscaled = pygame.image.load("map.png").convert()
 bgImg = pygame.transform.scale(bgImg_unscaled, (display_width, display_height))
 
 
-dim = 170
+dim = 140
 bright = 200
 brightest = 255
 colors = {
@@ -69,7 +69,14 @@ def load_img(path):
         img_unscaled, (int(x*display_width/1600), int(y*display_height/1200)))
     return img
 
+tick_img = load_img("Tick.png")
+tick_active_img = load_img("Tick_active.png")
 message_img = load_img("Message_table.png")
+cardlist_img = load_img("Cardlist.png")
+cards_img = load_img("Cards.png")
+cards_active_img = load_img("Cards_active.png")
+button_generic_img = load_img("Button_generic_large.png")
+button_generic_active_img = load_img("Button_generic_large_active.png")
 
 def button_textless_rect(x, y, inactive_img, active_img, action=None, alternative_action=None):
 
@@ -376,9 +383,9 @@ def node_button_fortify_to(node,  radius, width=0, font_color=white,
         if click[0] and distance(mouse, (x_dist, y_dist)) > radius+width:
             for n in all_nodes:
                 x_dist_n, y_dist_n = locations[n.get_name()]
-                if distance(mouse, (x_dist_n, y_dist_n)) <= radius+width and path_exists(selected_node_fortify_from, n):
+                if distance(mouse, (x_dist_n, y_dist_n)) <= radius+width and node.get_owner() == curr_player.get_color() and path_exists(selected_node_fortify_from, n):
                     return
-            selected_node_attack_from = None
+            selected_node_fortify_from = None
         # Still selected but no click.
         else:
             pygame.draw.circle(gameDisplay, cc, (x, y), radius, width)
@@ -525,8 +532,6 @@ def display_numbers(max_num, min_num=1, tick_action=None, cross_action=None, run
     right_active_img = load_img("Right_active.png")
     left_img = load_img("Left.png")
     left_active_img = load_img("Left_active.png")
-    tick_img = load_img("Tick.png")
-    tick_active_img = load_img("Tick_active.png")
     cross_img = load_img("Cross.png")
     cross_active_img = load_img("Cross_active.png")
 
@@ -829,13 +834,12 @@ def show_new_troops(curr_player):
 
         event_loop()
 
-        tick_img = load_img("Tick.png")
-        tick_active_img = load_img("Tick_active.png")
         button_textless_circular(0.72*display_width, 0.71*display_height,
                     tick_img, tick_active_img, action=close_msg_display)
         
         pygame.display.update()
         clock.tick(15)
+        
 
 def show_new_card(curr_player, card):
     global msg_displayed
@@ -850,7 +854,7 @@ def show_new_card(curr_player, card):
 
         new_troops, num_terr, continents_owned = calculate_territorial_bonus(curr_player.get_color(), continents)
 
-        msgText = pygame.font.SysFont("consolas", 30, bold=False)
+        msgText = pygame.font.SysFont("consolas", 30, bold=True)
         
         textSurf, textRect = text_objects("You got a card!", msgText, lavender)
         textRect.left = 0.27*display_width
@@ -865,21 +869,187 @@ def show_new_card(curr_player, card):
 
         event_loop()
 
-        tick_img = load_img("Tick.png")
-        tick_active_img = load_img("Tick_active.png")
         button_textless_circular(0.72*display_width, 0.71*display_height,
                     tick_img, tick_active_img, action=close_msg_display)
         
         pygame.display.update()
         clock.tick(15)
 
-    
+def use_cards():
+    global best_hand
+    assert best_hand is not None
+
+    for card in best_hand:
+        all_cards.insert(random.randint(0, len(all_cards)), card)
+    curr_player.add_troops(curr_player.use_cards(best_hand))
+    best_hand = None
+
+def use_cards_forced():
+    global best_hand
+    global msg_displayed
+    assert best_hand is not None
+    assert msg_displayed
+
+    for card in best_hand:
+        all_cards.insert(random.randint(0, len(all_cards)), card)
+    curr_player.add_troops(curr_player.use_cards(best_hand))
+    best_hand = None
+    msg_displayed = False
+
+def display_cards():
+    global msg_displayed
+    global best_hand
+
+
+    msg_displayed = True
+    while msg_displayed:
+        gameDisplay.blit(bgImg, (0,0))
+        
+        boxRect = message_img.get_rect()
+        boxRect.center = (0.5*display_width, 0.5*display_height)
+        gameDisplay.blit(message_img, boxRect)
+
+        msgText = pygame.font.SysFont("consolas", 30, bold=True)
+
+        textSurf, textRect = text_objects("%s Player: Your cards" % curr_player.get_color(), msgText, lavender)
+        textRect.left = 0.27*display_width
+        textRect.y = 0.275*display_height
+        gameDisplay.blit(textSurf, textRect)
+
+        i = 0
+        for card in curr_player.get_cards():
+            textSurf, textRect = text_objects(str(card), msgText, black)
+            textRect.left = 0.27*display_width
+            textRect.y = 0.35*display_height + i * 0.05*display_height
+            gameDisplay.blit(textSurf, textRect)
+            i += 1
+
+        event_loop()
+
+        button_textless_circular(0.72*display_width, 0.71*display_height,
+                    tick_img, tick_active_img, action=close_msg_display)
+        
+        # If player can use cards, suggest:
+        if len(curr_player.possible_combos()) > 0:
+            best_hand = curr_player.decide()
+            _, possible_bonus = curr_player.count_bonus(best_hand, False)
+            button_textless_circular(0.50*display_width, 0.67*display_height, button_generic_img, button_generic_active_img, action=use_cards)
+
+            buttonText = pygame.font.SysFont("consolas", 22, bold=True)
+            textSurf1, textRect1 = text_objects("Use cards", buttonText, black)
+            textSurf2, textRect2 = text_objects("Bonus: %i troops" % possible_bonus, buttonText, black)
+            textRect1.center = (0.50*display_width, 0.65*display_height)
+            textRect2.center = (0.50*display_width, 0.68*display_height)
+            gameDisplay.blit(textSurf1, textRect1)
+            gameDisplay.blit(textSurf2, textRect2)
+
+
+        
+        pygame.display.update()
+        clock.tick(15)
+
+def display_cards_force_use():
+    global msg_displayed
+    global best_hand
+
+
+    msg_displayed = True
+    while msg_displayed:
+        gameDisplay.blit(bgImg, (0,0))
+        
+        boxRect = message_img.get_rect()
+        boxRect.center = (0.5*display_width, 0.5*display_height)
+        gameDisplay.blit(message_img, boxRect)
+
+        msgText = pygame.font.SysFont("consolas", 30, bold=True)
+
+        textSurf, textRect = text_objects("%s Player: Your cards" % curr_player.get_color(), msgText, lavender)
+        textRect.left = 0.27*display_width
+        textRect.y = 0.275*display_height
+        gameDisplay.blit(textSurf, textRect)
+
+        i = 0
+        for card in curr_player.get_cards():
+            textSurf, textRect = text_objects(str(card), msgText, black)
+            textRect.left = 0.27*display_width
+            textRect.y = 0.35*display_height + i * 0.05*display_height
+            gameDisplay.blit(textSurf, textRect)
+            i += 1
+
+        event_loop()
+        
+        # If player can use cards, suggest:
+        if len(curr_player.possible_combos()) > 0:
+            best_hand = curr_player.decide()
+            _, possible_bonus = curr_player.count_bonus(best_hand, False)
+            button_textless_circular(0.50*display_width, 0.67*display_height, button_generic_img, button_generic_active_img, action=use_cards_forced)
+
+            buttonText = pygame.font.SysFont("consolas", 22, bold=True)
+            textSurf1, textRect1 = text_objects("Use cards", buttonText, black)
+            textSurf2, textRect2 = text_objects("Bonus: %i troops" % possible_bonus, buttonText, black)
+            textRect1.center = (0.50*display_width, 0.65*display_height)
+            textRect2.center = (0.50*display_width, 0.68*display_height)
+            gameDisplay.blit(textSurf1, textRect1)
+            gameDisplay.blit(textSurf2, textRect2)
+
+
+        
+        pygame.display.update()
+        clock.tick(15)
+
+def display_message(msg):
+    global msg_displayed
+
+    msg_displayed = True
+    while msg_displayed:
+        gameDisplay.blit(bgImg, (0,0))
+        
+        boxRect = message_img.get_rect()
+        boxRect.center = (0.5*display_width, 0.5*display_height)
+        gameDisplay.blit(message_img, boxRect)
+
+        msgText = pygame.font.SysFont("consolas", 27, bold=True)
+
+        textSurf, textRect = text_objects(msg, msgText, black)
+        textRect.left = 0.27*display_width
+        textRect.y = 0.35*display_height
+        gameDisplay.blit(textSurf, textRect)
+
+        event_loop()
+
+        button_textless_circular(0.72*display_width, 0.71*display_height,
+                    tick_img, tick_active_img, action=close_msg_display)
+        
+        pygame.display.update()
+        clock.tick(15)
+
+# # Check if player has more than 4 cards.
+# if len(curr_player.get_cards()) > 4:
+#     print("\nYou have too many cards! You have to use them to get bonus troops!")
+#     best_hand = curr_player.decide()
+#     # Used cards are added to the deck in random locations.
+#     for card in best_hand:
+#         all_cards.insert(random.randint(0, len(all_cards)), card)
+#     bonus_troops += curr_player.use_cards(best_hand)
+
+
+def find_defeated(player_lst):
+    '''Returns a list of players that have been defeated.
+
+    Preconditions: no duplicates in [player_lst].'''
+    res = []
+    for i in range(len(player_lst)):
+        player = player_lst[i]
+        if len(territories(player.get_color(), continents)) == 0:
+            res.append(player)
+    return res
        
 
 num_displayed = None
 selected_node_deploy = None
 # Represents if player is currently choosing the number of troops to be deployed.
 deploy_in_progress = False
+best_hand = None
 
 
 def deploy_phase(curr_player):
@@ -893,6 +1063,9 @@ def deploy_phase(curr_player):
     troops_gained, _, _ = calculate_troops_gained(curr_color, continents, True)
     curr_player.add_troops(troops_gained)
 
+    while len(curr_player.get_cards()) >= 5:
+        display_cards_force_use()
+
     while curr_player.get_troops() > 0:
 
         # Selecting node to put troops to.
@@ -900,6 +1073,9 @@ def deploy_phase(curr_player):
 
             gameDisplay.blit(bgImg, (0, 0))
             print_phase("DEPLOY")
+
+            # Cards button.
+            button_textless_circular(0.95*display_width, 0.92*display_height, cards_img, cards_active_img, action=display_cards)
 
             event_loop()
 
@@ -923,6 +1099,8 @@ def deploy_phase(curr_player):
             print_console("%s Player: Choose how many troops to deploy in %s." % (
                 curr_color, selected_node_deploy.get_name()))
             print_phase("DEPLOY")
+
+
 
             event_loop()
 
@@ -981,6 +1159,9 @@ def attack_phase(curr_player):
             if attack_phase_over:
                 break
 
+            # Cards button.
+            button_textless_circular(0.95*display_width, 0.92*display_height, cards_img, cards_active_img, action=display_cards)
+
             event_loop()
 
             print_console("%s Player: pick a territory to attack from. The territory should have at least 1 troop." %
@@ -1006,6 +1187,9 @@ def attack_phase(curr_player):
             button_textless_rect(0.825*display_width, display_height/10, skip_img, skip_active_img, action=finish_attack_phase)
             if attack_phase_over:
                 break
+
+            # Cards button.
+            button_textless_circular(0.95*display_width, 0.92*display_height, cards_img, cards_active_img, action=display_cards)
 
             event_loop()
 
@@ -1039,6 +1223,12 @@ def attack_phase(curr_player):
             # Give a card.
             if blitz_res:
                 received_card = True
+
+                # Check if any player has been defeated.
+                defeated = find_defeated(order)
+                for player in defeated:
+                    display_message("%s Player has been defeated!" % player.get_color())
+                    order.remove(player)
 
             # Reset global variables to let player conduct another attack.
             if blitz_res is not None:
@@ -1077,6 +1267,9 @@ selected_node_fortify_to = None
 fortify_in_progress = None
 fortify_phase_over = None
 
+for i in range(5):
+    red_player.give_card(all_cards.pop())
+
 
 def fortify_phase(curr_player):
     global selected_node_fortify_from
@@ -1107,10 +1300,12 @@ def fortify_phase(curr_player):
             if fortify_phase_over:
                 break
 
+            # Cards button.
+            button_textless_circular(0.95*display_width, 0.92*display_height, cards_img, cards_active_img, action=display_cards)
+
             event_loop()
 
-            print_console("%s Player: pick a territory to transfer troops from. The territory should have at least 1 troop." %
-                          curr_color)
+            print_console("%s Player: pick a territory with at least 1 troop to take troops from." % curr_color)
             display_nodes_fortify_from(all_nodes, curr_player)
 
             pygame.display.update()
@@ -1118,19 +1313,22 @@ def fortify_phase(curr_player):
 
         # Selecting a node to attack.
         while selected_node_fortify_to is None:
-            # Node to attack from was unselected. Return to the first while-loop.
-            if selected_node_fortify_from is None:
-                break
 
             gameDisplay.blit(bgImg, (0, 0))
             print_phase("FORTIFY")
             display_nodes_fortify_to(all_nodes, curr_player)
+            # Node to fortify from was unselected. Return to the first while-loop.
+            if selected_node_fortify_from is None:
+                break
             print_console("%s Player: Choose a territory connected to %s to fortify." % (curr_color, selected_node_fortify_from.get_name()))
 
             # Finish phase.
             button_textless_rect(0.925*display_width, display_height/10, skip_img, skip_active_img, action=finish_fortify_phase)
             if fortify_phase_over:
                 break
+
+            # Cards button.
+            button_textless_circular(0.95*display_width, 0.92*display_height, cards_img, cards_active_img, action=display_cards)
 
             event_loop()
 
@@ -1174,6 +1372,7 @@ def fortify_phase(curr_player):
             fortify_phase_over = True
 
 
+
 while True:
     curr_player = order.pop(0)
     order.append(curr_player)
@@ -1187,6 +1386,12 @@ while True:
     #     pygame.display.update()
     #     clock.tick(15)
     #     i += 1
+
+    # Check for victory.
+    if len(order) == 1:
+        display_message("%s Player won! CONGRATULATIONS!" % order[0].get_color())
+        game_quit()
+
     set_continent_owners(continents)
     show_new_troops(curr_player)
     deploy_phase(curr_player)

@@ -10,14 +10,14 @@ from roll import blitz
 
 
 # Initialize players.
-initial_troops = 30
-red = Player(Color.RED, initial_troops, [])
-blue = Player(Color.BLUE, initial_troops, [])
-green = Player(Color.GREEN, initial_troops, [])
-yellow = Player(Color.YELLOW, initial_troops, [])
+initial_troops = 10
+red_player = Player(Color.RED, 80, [])
+blue_player = Player(Color.BLUE, initial_troops, [])
+green_player = Player(Color.GREEN, initial_troops, [])
+yellow_player = Player(Color.YELLOW, initial_troops, [])
 
 # Randomize order.
-order = [red, blue, green, yellow]
+order = [red_player, green_player, blue_player, yellow_player]
 random.shuffle(order)
 
 
