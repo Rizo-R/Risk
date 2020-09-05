@@ -933,7 +933,7 @@ def display_cards():
         if len(curr_player.possible_combos()) > 0:
             best_hand = curr_player.decide()
             _, possible_bonus = curr_player.count_bonus(best_hand, False)
-            button_textless_circular(0.50*display_width, 0.67*display_height, button_generic_img, button_generic_active_img, action=use_cards)
+            button_textless_rect(0.50*display_width, 0.67*display_height, button_generic_img, button_generic_active_img, action=use_cards)
 
             buttonText = pygame.font.SysFont("consolas", 22, bold=True)
             textSurf1, textRect1 = text_objects("Use cards", buttonText, black)
@@ -942,6 +942,45 @@ def display_cards():
             textRect2.center = (0.50*display_width, 0.68*display_height)
             gameDisplay.blit(textSurf1, textRect1)
             gameDisplay.blit(textSurf2, textRect2)
+
+
+        
+        pygame.display.update()
+        clock.tick(15)
+
+def display_cards_no_use():
+    '''Same as display_cards() except doesn't let player use them.'''
+    global msg_displayed
+    global best_hand
+
+
+    msg_displayed = True
+    while msg_displayed:
+        gameDisplay.blit(bgImg, (0,0))
+        
+        boxRect = message_img.get_rect()
+        boxRect.center = (0.5*display_width, 0.5*display_height)
+        gameDisplay.blit(message_img, boxRect)
+
+        msgText = pygame.font.SysFont("consolas", 30, bold=True)
+
+        textSurf, textRect = text_objects("%s Player: Your cards" % curr_player.get_color(), msgText, lavender)
+        textRect.left = 0.27*display_width
+        textRect.y = 0.275*display_height
+        gameDisplay.blit(textSurf, textRect)
+
+        i = 0
+        for card in curr_player.get_cards():
+            textSurf, textRect = text_objects(str(card), msgText, black)
+            textRect.left = 0.27*display_width
+            textRect.y = 0.35*display_height + i * 0.05*display_height
+            gameDisplay.blit(textSurf, textRect)
+            i += 1
+
+        event_loop()
+
+        button_textless_circular(0.72*display_width, 0.71*display_height,
+                    tick_img, tick_active_img, action=close_msg_display)
 
 
         
@@ -970,10 +1009,17 @@ def display_cards_force_use():
 
         i = 0
         for card in curr_player.get_cards():
-            textSurf, textRect = text_objects(str(card), msgText, black)
-            textRect.left = 0.27*display_width
-            textRect.y = 0.35*display_height + i * 0.05*display_height
-            gameDisplay.blit(textSurf, textRect)
+            # Display up to 6 cards.
+            if i < 6:
+                textSurf, textRect = text_objects(str(card), msgText, black)
+                textRect.left = 0.27*display_width
+                textRect.y = 0.35*display_height + i * 0.05*display_height
+                gameDisplay.blit(textSurf, textRect)
+            elif i == 6:
+                textSurf, textRect = text_objects("...", msgText, black)
+                textRect.left = 0.27*display_width
+                textRect.y = 0.35*display_height + i * 0.05*display_height
+                gameDisplay.blit(textSurf, textRect)
             i += 1
 
         event_loop()
@@ -1018,6 +1064,35 @@ def display_message(msg):
         event_loop()
 
         button_textless_circular(0.72*display_width, 0.71*display_height,
+                    tick_img, tick_active_img, action=close_msg_display)
+        
+        pygame.display.update()
+        clock.tick(15)
+
+def display_message_2(msg):
+    '''Same as display_message(), except the tick button is slightly displaced
+    so that player can read it after having seen a previous message. Meant 
+    to be used right after/right before display_message().'''
+    global msg_displayed
+
+    msg_displayed = True
+    while msg_displayed:
+        gameDisplay.blit(bgImg, (0,0))
+        
+        boxRect = message_img.get_rect()
+        boxRect.center = (0.5*display_width, 0.5*display_height)
+        gameDisplay.blit(message_img, boxRect)
+
+        msgText = pygame.font.SysFont("consolas", 27, bold=True)
+
+        textSurf, textRect = text_objects(msg, msgText, black)
+        textRect.left = 0.27*display_width
+        textRect.y = 0.35*display_height
+        gameDisplay.blit(textSurf, textRect)
+
+        event_loop()
+
+        button_textless_circular(0.28*display_width, 0.71*display_height,
                     tick_img, tick_active_img, action=close_msg_display)
         
         pygame.display.update()
@@ -1160,7 +1235,7 @@ def attack_phase(curr_player):
                 break
 
             # Cards button.
-            button_textless_circular(0.95*display_width, 0.92*display_height, cards_img, cards_active_img, action=display_cards)
+            button_textless_circular(0.95*display_width, 0.92*display_height, cards_img, cards_active_img, action=display_cards_no_use)
 
             event_loop()
 
@@ -1189,7 +1264,7 @@ def attack_phase(curr_player):
                 break
 
             # Cards button.
-            button_textless_circular(0.95*display_width, 0.92*display_height, cards_img, cards_active_img, action=display_cards)
+            button_textless_circular(0.95*display_width, 0.92*display_height, cards_img, cards_active_img, action=display_cards_no_use)
 
             event_loop()
 
@@ -1226,9 +1301,19 @@ def attack_phase(curr_player):
 
                 # Check if any player has been defeated.
                 defeated = find_defeated(order)
-                for player in defeated:
-                    display_message("%s Player has been defeated!" % player.get_color())
-                    order.remove(player)
+                for defeated_player in defeated:
+                    defeated_cards = defeated_player.get_cards()
+                    display_message("%s Player has been defeated!" % defeated_player.get_color())
+                    display_message_2("%s Player: You got %i cards from %s Player!" % (curr_player.get_color(), len(defeated_cards), defeated_player.get_color()))
+                    # Give the defeated player's cards to the conqueror.
+                    for card in defeated_player.get_cards():
+                        curr_player.give_card(card)
+                    order.remove(defeated_player)
+                
+                # Check for victory.
+                if len(defeated) > 0 and len(order) == 1:
+                    display_message("%s Player won! CONGRATULATIONS!" % order[0].get_color())
+                    game_quit()
 
             # Reset global variables to let player conduct another attack.
             if blitz_res is not None:
@@ -1267,9 +1352,6 @@ selected_node_fortify_to = None
 fortify_in_progress = None
 fortify_phase_over = None
 
-for i in range(5):
-    red_player.give_card(all_cards.pop())
-
 
 def fortify_phase(curr_player):
     global selected_node_fortify_from
@@ -1301,7 +1383,7 @@ def fortify_phase(curr_player):
                 break
 
             # Cards button.
-            button_textless_circular(0.95*display_width, 0.92*display_height, cards_img, cards_active_img, action=display_cards)
+            button_textless_circular(0.95*display_width, 0.92*display_height, cards_img, cards_active_img, action=display_cards_no_use)
 
             event_loop()
 
@@ -1328,7 +1410,7 @@ def fortify_phase(curr_player):
                 break
 
             # Cards button.
-            button_textless_circular(0.95*display_width, 0.92*display_height, cards_img, cards_active_img, action=display_cards)
+            button_textless_circular(0.95*display_width, 0.92*display_height, cards_img, cards_active_img, action=display_cards_no_use)
 
             event_loop()
 
@@ -1372,6 +1454,8 @@ def fortify_phase(curr_player):
             fortify_phase_over = True
 
 
+for i in range(13):
+    red_player.give_card(all_cards.pop())
 
 while True:
     curr_player = order.pop(0)
@@ -1386,12 +1470,6 @@ while True:
     #     pygame.display.update()
     #     clock.tick(15)
     #     i += 1
-
-    # Check for victory.
-    if len(order) == 1:
-        display_message("%s Player won! CONGRATULATIONS!" % order[0].get_color())
-        game_quit()
-
     set_continent_owners(continents)
     show_new_troops(curr_player)
     deploy_phase(curr_player)
