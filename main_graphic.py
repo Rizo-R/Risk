@@ -3,9 +3,25 @@ import pygame
 import random
 import time
 
-from main import *
+from card import *
+from color import Color
+from continent import *
 from path import path_exists
+from player import Player
+from roll import blitz
 
+# Initialize players.
+initial_troops = 30
+red_player = Player(Color.RED, initial_troops, [])
+blue_player = Player(Color.BLUE, initial_troops, [])
+green_player = Player(Color.GREEN, initial_troops, [])
+yellow_player = Player(Color.YELLOW, initial_troops, [])
+cyan_player = Player(Color.CYAN, initial_troops, [])
+purple_player = Player(Color.PURPLE, initial_troops, [])
+
+# Randomize order.
+order = [red_player, blue_player, green_player, yellow_player]
+random.shuffle(order)
 
 pygame.init()
 
@@ -34,7 +50,10 @@ gameDisplay = pygame.display.set_mode(
 pygame.display.set_caption("RISK")
 clock = pygame.time.Clock()
 
-bgImg_unscaled = pygame.image.load("map.png").convert()
+gameIcon = pygame.image.load('Logo.png')
+pygame.display.set_icon(gameIcon)
+
+bgImg_unscaled = pygame.image.load("./Map.png").convert()
 bgImg = pygame.transform.scale(bgImg_unscaled, (display_width, display_height))
 
 
@@ -69,16 +88,16 @@ def load_img(path):
         img_unscaled, (int(x*display_width/1600), int(y*display_height/1200)))
     return img
 
-tick_img = load_img("Tick.png")
-tick_active_img = load_img("Tick_active.png")
-message_img = load_img("Message_table.png")
-cardlist_img = load_img("Cardlist.png")
-cards_img = load_img("Cards.png")
-cards_active_img = load_img("Cards_active.png")
-button_generic_img = load_img("Button_generic_large.png")
-button_generic_active_img = load_img("Button_generic_large_active.png")
+tick_img = load_img("./Tick.png")
+tick_active_img = load_img("./Tick_active.png")
+message_img = load_img("./Message_table.png")
+cardlist_img = load_img("./Cardlist.png")
+cards_img = load_img("./Cards.png")
+cards_active_img = load_img("./Cards_active.png")
+button_generic_img = load_img("./Button_generic_large.png")
+button_generic_active_img = load_img("./Button_generic_large_active.png")
 
-def button_textless_rect(x, y, inactive_img, active_img, action=None, alternative_action=None):
+def button_textless_rect(x, y, inactive_img, active_img, action=None):
 
     mouse = pygame.mouse.get_pos()
     click = pygame.mouse.get_pressed()
@@ -86,22 +105,14 @@ def button_textless_rect(x, y, inactive_img, active_img, action=None, alternativ
     width, height = inactive_img.get_rect().size
 
     if x-width/2 < mouse[0] < x+width/2 and y-height/2 < mouse[1] < y+height/2:
-        # print('if')
         gameDisplay.blit(active_img, (x-width/2, y-height/2))
         if click[0] == 1:
             if action is not None:
                 action() 
-    # elif click[0] == 1 and alternative_action is not None:
-    #     alternative_action()
     else:
-        # print('else')
         gameDisplay.blit(inactive_img, (x-width/2, y-height/2))
 
-    # pygame.display.update()
-    # clock.tick(15)
-
-
-def button_textless_circular(x, y, inactive_img, active_img, action=None, alternative_action=None):
+def button_textless_circular(x, y, inactive_img, active_img, action=None):
 
     mouse = pygame.mouse.get_pos()
     click = pygame.mouse.get_pressed()
@@ -110,21 +121,14 @@ def button_textless_circular(x, y, inactive_img, active_img, action=None, altern
     radius = width/2
 
     if distance(mouse, (x, y)) <= radius:
-        # print('if')        
         gameDisplay.blit(active_img, (x-width/2,y-height/2))
         
         if click[0] == 1:
             if action is not None:
                 action()
-    # elif click[0] == 1 and alternative_action is not None:
-    #     alternative_action()
     else:
-        # print('else')
         width, height = inactive_img.get_rect().size
         gameDisplay.blit(inactive_img, (x-width/2,y-height/2))
-
-    # pygame.display.update()
-    # clock.tick(15)
 
 
 def distance(pos1, pos2):
@@ -527,17 +531,17 @@ def display_numbers(max_num, min_num=1, tick_action=None, cross_action=None, run
     global num_displayed
 
 
-    number_bg_img = load_img("Number_bg.png")
-    right_img = load_img("Right.png")
-    right_active_img = load_img("Right_active.png")
-    left_img = load_img("Left.png")
-    left_active_img = load_img("Left_active.png")
-    cross_img = load_img("Cross.png")
-    cross_active_img = load_img("Cross_active.png")
+    number_bg_img = load_img("./Number_bg.png")
+    right_img = load_img("./Right.png")
+    right_active_img = load_img("./Right_active.png")
+    left_img = load_img("./Left.png")
+    left_active_img = load_img("./Left_active.png")
+    cross_img = load_img("./Cross.png")
+    cross_active_img = load_img("./Cross_active.png")
 
     # If player clicks outside of the table, one has to select a node again.
     button_textless_rect(0.125*display_width, display_height/9,
-                    number_bg_img, number_bg_img, alternative_action=deselect_deploy_node)
+                    number_bg_img, number_bg_img)
     button_textless_rect(0.17*display_width, display_height/9,
                     right_img, right_active_img, action=num_displayed_increase)
     button_textless_rect(0.08*display_width, display_height/9,
@@ -567,19 +571,6 @@ def display_numbers(max_num, min_num=1, tick_action=None, cross_action=None, run
     pygame.display.update()
     clock.tick(15)
     
-
-
-def current_player_display(curr_player, loc):
-    left, y = loc
-    curr_color = curr_player.get_color()
-
-    display_colors = colors[curr_color.name]
-    largeText = pygame.font.SysFont("consolas", 30, bold=False)
-    textSurface, textRect = text_objects(curr_color.name, largeText, display_colors[2])
-    textRect.left = left
-    textRect.y = y
-
-    gameDisplay.blit(textSurface, textRect)
 
 
 def display_nodes_deploy(node_lst, curr_player):
@@ -689,11 +680,6 @@ def rescale_locations(w, h):
         x = int(coords[0] * w/1200)
         y = int(coords[1] * h/900)
         locations[loc] = (x, y)
-    # for node in all_nodes:
-    #     x, y = node.get_location()
-    #     x_new = int(x*w/1200)
-    #     y_new = int(y*h/900)
-    #     node.set_location(((x * w/1200, y * h/900)))
 
 
 for node in all_nodes:
@@ -715,6 +701,65 @@ def lighten_screen():
     for _ in range(3):
         bgImg.blit(dark, (0, 0), special_flags=pygame.BLEND_RGBA_ADD)
 
+
+
+def territories(color, continents):
+    '''Returns a list of territories (Node list) owned by a player with a
+    given color in the given continent list (can be empty).'''
+    res = []
+    for continent in continents:
+        for node in continent.get_nodes():
+            if node.get_owner() == color:
+                res.append(node)
+    return res
+
+def find_player(color, player_lst):
+    '''Returns the player from [player_lst] with a given color. Raises
+    ValueError if not found.'''
+    for player in player_lst:
+        if player.get_color() == color:
+            return player
+    raise ValueError('Player with color %s not found!' % str(color))
+
+# WARNING: this function changes both [order] and [nodes].
+def claim_territories(order, nodes):
+    '''Gives territories for a given [order] in a given territories.'''
+    while len(nodes) > 0:
+        # Select the next player in the queue.
+        curr_player = order.pop(0)
+        order.append(curr_player)
+        if curr_player.get_troops() == 0:
+            continue
+        # Get necessary information and pop the first node from [nodes].
+        curr_color = curr_player.get_color()
+        curr_node = nodes.pop(0)
+        assert curr_node.get_troops() == -1, "Non-empty territory during claim!"
+        # Set ownership and subtract troops.
+        curr_node.set_owner(curr_color)
+        curr_node.set_troops(1)
+        curr_player.subtract_troops(1)
+    return
+
+
+def initialize_troops(order, nodes):
+    # WARNING: this function changes both [order] and [nodes].
+    '''Initializes troops using a given order in given node list.'''
+    total_remaining_troops = 0
+    for player in order:
+        total_remaining_troops += player.get_troops()
+    while total_remaining_troops > 0:
+        # Pop the first node from the queue and put it at the end.
+        curr_node = nodes.pop(0)
+        nodes.append(curr_node)
+        curr_color = curr_node.get_owner()
+        # Find player with a given color.
+        curr_player = find_player(curr_color, order)
+        # Add a random number or, if the player doesn't have enough troops,
+        # the remaining troops to the territory
+        assigned_troops = min(random.randint(0, 5), curr_player.get_troops())
+        curr_node.add_troops(assigned_troops)
+        curr_player.subtract_troops(assigned_troops)
+        total_remaining_troops -= assigned_troops
 
 def blitz_attack(from_node, to_node):
     '''Conducts blitz attack between the two nodes and changes the results.
@@ -738,8 +783,6 @@ def blitz_attack(from_node, to_node):
         from_node.set_troops(1)
         to_node.set_troops(blitz_res[0]-1)
         to_node.set_owner(from_node.get_owner())
-        # print("\nYou now have 1 troop in %s and %i troops in %s." % (
-        #     from_node.get_name(), to_node.get_troops(), to_node.get_name()))
         return True
     else:
         raise ValueError("Wrong results for blitz: (%i, %i)" % blitz_res)
@@ -786,7 +829,24 @@ def calculate_territorial_bonus(curr_color, continents):
             bonus = continent.get_bonus()
             troops_gained += bonus
     return troops_gained, territories_owned, continents_owned
-
+    
+def calculate_troops_gained(curr_color, continents):
+    '''Calculates the number of troops gained by the player with a given color
+    in the beginning of their turn.
+    Returns the number of gained troops (int), the number of territories owned
+    by the player (int), and the list of continents owned by the player
+    (Continent list).'''
+    continents_owned = []
+    territories_owned = len(territories(curr_color, continents))
+    territory_bonus = max(territories_owned//3, 3)
+    troops_gained = 0
+    troops_gained += territory_bonus
+    for continent in continents:
+        if continent.get_owner() == curr_color:
+            continents_owned.append(continent)
+            bonus = continent.get_bonus()
+            troops_gained += bonus
+    return troops_gained, territories_owned, continents_owned
 
 msg_displayed = False
 def show_new_troops(curr_player):
@@ -1098,15 +1158,6 @@ def display_message_2(msg):
         pygame.display.update()
         clock.tick(15)
 
-# # Check if player has more than 4 cards.
-# if len(curr_player.get_cards()) > 4:
-#     print("\nYou have too many cards! You have to use them to get bonus troops!")
-#     best_hand = curr_player.decide()
-#     # Used cards are added to the deck in random locations.
-#     for card in best_hand:
-#         all_cards.insert(random.randint(0, len(all_cards)), card)
-#     bonus_troops += curr_player.use_cards(best_hand)
-
 
 def find_defeated(player_lst):
     '''Returns a list of players that have been defeated.
@@ -1135,7 +1186,7 @@ def deploy_phase(curr_player):
     deploy_in_progress = False
 
     curr_color = curr_player.get_color()
-    troops_gained, _, _ = calculate_troops_gained(curr_color, continents, True)
+    troops_gained, _, _ = calculate_troops_gained(curr_color, continents)
     curr_player.add_troops(troops_gained)
 
     while len(curr_player.get_cards()) >= 5:
@@ -1182,12 +1233,6 @@ def deploy_phase(curr_player):
             display_nodes_deploy(all_nodes, curr_player)
             display_numbers(max_num=curr_player.get_troops(), min_num=1, tick_action=place_troops_deploy, cross_action=go_back_deploy, running_condition=deploy_in_progress)
 
-            # tick_img = pygame.image.load("Tick.png")
-            # tick_active_img = pygame.image.load("Tick_active.png")
-
-            # button_textless(int(0.1*display_width), int(display_height/8),
-            #                 tick_img, tick_active_img, action=place_troops)
-
             pygame.display.update()
             pygame.event.get()
             clock.tick(15)
@@ -1217,8 +1262,8 @@ def attack_phase(curr_player):
     received_card = False
 
     curr_color = curr_player.get_color()
-    skip_img = load_img("Skip.png")
-    skip_active_img = load_img("Skip_active.png")
+    skip_img = load_img("./Skip.png")
+    skip_active_img = load_img("./Skip_active.png")
 
     while not attack_phase_over:
 
@@ -1242,7 +1287,6 @@ def attack_phase(curr_player):
             print_console("%s Player: pick a territory to attack from. The territory should have at least 1 troop." %
                           curr_color)
             display_nodes_attack_from(all_nodes, curr_player)
-            # current_player_display(curr_player, (10, 865))
 
             pygame.display.update()
             clock.tick(15)
@@ -1267,8 +1311,6 @@ def attack_phase(curr_player):
             button_textless_circular(0.95*display_width, 0.92*display_height, cards_img, cards_active_img, action=display_cards_no_use)
 
             event_loop()
-
-            # current_player_display(curr_player, (10, 865))
 
             # Attack successful. Let player choose how many troops to move.
             if blitz_res and selected_node_attack_to.get_troops() > 3:
@@ -1304,16 +1346,17 @@ def attack_phase(curr_player):
                 for defeated_player in defeated:
                     defeated_cards = defeated_player.get_cards()
                     display_message("%s Player has been defeated!" % defeated_player.get_color())
-                    display_message_2("%s Player: You got %i cards from %s Player!" % (curr_player.get_color(), len(defeated_cards), defeated_player.get_color()))
+                    display_message_2("You got %i cards from %s Player!" % (len(defeated_cards), defeated_player.get_color()))
                     # Give the defeated player's cards to the conqueror.
                     for card in defeated_player.get_cards():
                         curr_player.give_card(card)
-                    order.remove(defeated_player)
+                    order.remove(defeated_player)   
                 
                 # Check for victory.
-                if len(defeated) > 0 and len(order) == 1:
-                    display_message("%s Player won! CONGRATULATIONS!" % order[0].get_color())
-                    game_quit()
+                if len(defeated) > 0:
+                    if len(order) == 1:
+                        display_message("%s Player won! CONGRATULATIONS!" % order[0].get_color())
+                        game_quit()
 
             # Reset global variables to let player conduct another attack.
             if blitz_res is not None:
@@ -1323,19 +1366,6 @@ def attack_phase(curr_player):
                 selected_node_attack_from = None
                 selected_node_attack_to = None
                 territory_occupied = False
-
-                # attack_phase_over = True
-                # Code below not working due to a bug in time.sleep() for Mac.
-                # node_to = selected_node_attack_to
-                # if blitz_res:
-                #     print_console("%s Player: the attack was successful! You now have 1 troop in %s and %i troops in %s." %
-                #                   (curr_color, selected_node_attack_from.get_name(), node_to.get_troops(), node_to.get_name()))
-                #     time.sleep(2)
-                # else:
-                #     print_console("%s Player: the attack was unsuccessful! You now have 1 troop in %s. %s Player has %i troops in %s." %
-                #                   (curr_color, selected_node_attack_from.get_name(), node_to.get_owner(), node_to.get_troops(), node_to.get_name()))
-                #     time.sleep(2)
-            # else:
 
             pygame.display.update()
             clock.tick(15)
@@ -1366,8 +1396,8 @@ def fortify_phase(curr_player):
     fortify_phase_over = False
 
     curr_color = curr_player.get_color()
-    skip_img = load_img("Skip.png")
-    skip_active_img = load_img("Skip_active.png")
+    skip_img = load_img("./Skip.png")
+    skip_active_img = load_img("./Skip_active.png")
 
     while not fortify_phase_over:
 
@@ -1454,24 +1484,25 @@ def fortify_phase(curr_player):
             fortify_phase_over = True
 
 
-for i in range(13):
-    red_player.give_card(all_cards.pop())
+claim_territories(order, all_nodes.copy())
+initialize_troops(order, all_nodes.copy())
+
+# Ensure there are no unowned nodes.
+for continent in continents:
+    for node in continent.get_nodes():
+        if node.get_owner() == Color.NONE:
+            raise ValueError('Unowned node!' + str(node))
 
 while True:
+    # Pick the next player.
     curr_player = order.pop(0)
     order.append(curr_player)
-    # num_displayed = curr_player.get_troops()
-    # i = 0
-    # while i < 100:
-    #     tick_img = pygame.image.load("Tick.png").convert()
-    #     tick_img = pygame.transform.scale(tick_img, (display_width, display_height))
-    #     gameDisplay.blit(bgImg, (0, 0))
-
-    #     pygame.display.update()
-    #     clock.tick(15)
-    #     i += 1
+    # Check continent ownership.
     set_continent_owners(continents)
+    # Give new troops.
     show_new_troops(curr_player)
+    # Deploy - Attack - Fortify.
     deploy_phase(curr_player)
     attack_phase(curr_player)
     fortify_phase(curr_player)
+
