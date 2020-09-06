@@ -569,7 +569,7 @@ def display_numbers(max_num, min_num=1, tick_action=None, cross_action=None, run
     gameDisplay.blit(textSurf, textRect)
 
     pygame.display.update()
-    clock.tick(15)
+    clock.tick(30)
     
 
 
@@ -898,7 +898,7 @@ def show_new_troops(curr_player):
                     tick_img, tick_active_img, action=close_msg_display)
         
         pygame.display.update()
-        clock.tick(15)
+        clock.tick(30)
         
 
 def show_new_card(curr_player, card):
@@ -933,7 +933,7 @@ def show_new_card(curr_player, card):
                     tick_img, tick_active_img, action=close_msg_display)
         
         pygame.display.update()
-        clock.tick(15)
+        clock.tick(30)
 
 def use_cards():
     global best_hand
@@ -1006,7 +1006,7 @@ def display_cards():
 
         
         pygame.display.update()
-        clock.tick(15)
+        clock.tick(30)
 
 def display_cards_no_use():
     '''Same as display_cards() except doesn't let player use them.'''
@@ -1045,7 +1045,7 @@ def display_cards_no_use():
 
         
         pygame.display.update()
-        clock.tick(15)
+        clock.tick(30)
 
 def display_cards_force_use():
     global msg_displayed
@@ -1101,7 +1101,7 @@ def display_cards_force_use():
 
         
         pygame.display.update()
-        clock.tick(15)
+        clock.tick(30)
 
 def display_message(msg):
     global msg_displayed
@@ -1127,7 +1127,7 @@ def display_message(msg):
                     tick_img, tick_active_img, action=close_msg_display)
         
         pygame.display.update()
-        clock.tick(15)
+        clock.tick(30)
 
 def display_message_2(msg):
     '''Same as display_message(), except the tick button is slightly displaced
@@ -1156,7 +1156,7 @@ def display_message_2(msg):
                     tick_img, tick_active_img, action=close_msg_display)
         
         pygame.display.update()
-        clock.tick(15)
+        clock.tick(30)
 
 
 def find_defeated(player_lst):
@@ -1214,7 +1214,7 @@ def deploy_phase(curr_player):
             display_nodes_deploy(all_nodes, curr_player)
 
             pygame.display.update()
-            clock.tick(15)
+            clock.tick(30)
 
         # Selecting the number of troops to put.
         darken_screen()
@@ -1235,7 +1235,7 @@ def deploy_phase(curr_player):
 
             pygame.display.update()
             pygame.event.get()
-            clock.tick(15)
+            clock.tick(30)
         lighten_screen()
 
 
@@ -1289,7 +1289,7 @@ def attack_phase(curr_player):
             display_nodes_attack_from(all_nodes, curr_player)
 
             pygame.display.update()
-            clock.tick(15)
+            clock.tick(30)
 
         # Selecting a node to attack.
         while selected_node_attack_to is None:
@@ -1334,7 +1334,7 @@ def attack_phase(curr_player):
                     display_numbers(max_num=to_node.get_troops(), min_num=3, tick_action=occupy_territory, cross_action=None, running_condition=not territory_occupied)
 
                     pygame.display.update()
-                    clock.tick(15)
+                    clock.tick(30)
                 lighten_screen()
 
             # Give a card.
@@ -1368,7 +1368,7 @@ def attack_phase(curr_player):
                 territory_occupied = False
 
             pygame.display.update()
-            clock.tick(15)
+            clock.tick(30)
     
     # If player conquered anything, one receives a card.
     if received_card:
@@ -1421,7 +1421,7 @@ def fortify_phase(curr_player):
             display_nodes_fortify_from(all_nodes, curr_player)
 
             pygame.display.update()
-            clock.tick(15)
+            clock.tick(30)
 
         # Selecting a node to attack.
         while selected_node_fortify_to is None:
@@ -1466,11 +1466,11 @@ def fortify_phase(curr_player):
                     display_numbers(max_num=from_node.get_troops()-1, min_num=1, tick_action=fortify_territory, cross_action=go_back_fortify, running_condition=fortify_in_progress)
 
                     pygame.display.update()
-                    clock.tick(15)
+                    clock.tick(30)
                 lighten_screen()
 
             pygame.display.update()
-            clock.tick(15)
+            clock.tick(30)
         
         if selected_node_fortify_to is not None:
             assert selected_node_fortify_from is not None

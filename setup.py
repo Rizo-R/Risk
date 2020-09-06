@@ -1,6 +1,6 @@
 import cx_Freeze
 
-executables = [cx_Freeze.Executable("main_graphic.py")]
+executables = [cx_Freeze.Executable("game.py")]
 
 cx_Freeze.setup(
     name="RISK",
@@ -8,6 +8,7 @@ cx_Freeze.setup(
                            "include_files":[
                                "Stage.png",
                                "Map.png",
+                               "Logo.png",
                                "Skip.png",
                                "Skip_active.png",
                                "Number_bg.png",
@@ -28,7 +29,6 @@ cx_Freeze.setup(
                                "card.py",
                                "color.py",
                                "continent.py",
-                               "main.py",
                                "node.py",
                                "path.py",
                                "player.py",
