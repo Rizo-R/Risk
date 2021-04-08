@@ -5,6 +5,8 @@ The official rules can be found here: https://www.ultraboardgames.com/risk/game-
 
 The point of the game is to conquer all territories and eliminate all players. There are 4 players in the current version; however, it can be modified through game.py. Players have to take consequential turns on the same computer.
 
+WARNING: Due to issues with using GUI in pygame, it might be recommended to not open the app full-screen as buttons might not work properly (however, sometimes it might be the other way round and the game could only work properly on full-screen setting, depending on your computer)
+
 Installation:
 - One option is to download all files, except the "lib" folder and the "game.exe" file. Then, execute the "game.py" file. Pygame is required for this option.
 - Another way to play the game (only available on Windows) is to download the "lib" folder and the "game.exe" file and launch the latter. The executable was noticed to work slower than "game.py", so the first option is preferable.
